@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
 
+import Button from "../../../src/components/button";
 import {
   AuthBrand,
-  AuthButton,
   AuthCard,
   AuthField,
   AuthHeading,
@@ -32,7 +32,7 @@ const ResetPasswordPage = () => {
           />
 
           <div className="pt-8">
-            <AuthButton>Send reset code</AuthButton>
+            <Button>Send reset code</Button>
           </div>
         </form>
       </AuthCard>

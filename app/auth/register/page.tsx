@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeClosed, Lock, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { z } from "zod";
+
+import Button from "../../../src/components/button";
 import { useToast } from "../../../src/store/toastState";
 import {
   AuthBrand,
-  AuthButton,
   AuthCard,
   AuthField,
   AuthHeading,
@@ -136,7 +137,7 @@ const RegisterPage = () => {
               className="text-[#3B3E42]"
               onClick={() => setShowPassword((current) => !current)}
             >
-              {showPassword ? <EyeClosed size={18} /> : <Eye size={18} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           }
           value={values.password}
@@ -152,16 +153,18 @@ const RegisterPage = () => {
         />
 
         <div className="pt-2">
-          <AuthButton type="submit" disabled={!isFormValid}>
+          <Button type="submit" disabled={!isFormValid}>
             Create account
-          </AuthButton>
+          </Button>
         </div>
 
         <div className="flex items-center justify-center gap-3 pt-1 w-full">
-          <p className="text-base font-medium text-center  text-[#000000]">Or</p>
+          <p className="text-base font-medium text-center  text-[#000000]">
+            Or
+          </p>
         </div>
 
-        <AuthButton variant="secondary">Continue with Google</AuthButton>
+        <Button variant="secondary">Continue with Google</Button>
 
         <div className="flex flex-col gap-[12px]">
           <p className="pt-2 text-center text-sm text-[#737880] text-nowrap">

@@ -1,4 +1,3 @@
-"use server"
 import Link from "next/link";
 
 type AuthPagesLayoutProps = {
@@ -14,12 +13,17 @@ const AuthPagesLayout = ({ children }: AuthPagesLayoutProps) => {
       <footer className="w-full px-6 pb-6 pt-2">
         <p className="text-center text-sm text-slate-600">
           <span className="mr-1">Need assistance?</span>
-          <Link className="text-slate-900 underline underline-offset-2" href="/contact">
+          <Link
+            className="text-slate-900 underline underline-offset-2"
+            href="/contact"
+          >
             Contact us
           </Link>
         </p>
 
-        <p className="mt-10 text-xs text-slate-400">Powered by Nexoris Technologies</p>
+        <p className="mt-10 text-xs text-slate-400">
+          Powered by Nexoris Technologies
+        </p>
       </footer>
     </section>
   );

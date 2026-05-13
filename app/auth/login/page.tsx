@@ -6,9 +6,9 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 
 import { useToast } from "../../../src/store/toastState";
+import Button from "../../../src/components/button";
 import {
   AuthBrand,
-  AuthButton,
   AuthCard,
   AuthCheckbox,
   AuthField,
@@ -148,9 +148,9 @@ const LoginPage = () => {
           />
 
           <div className="pt-8">
-            <AuthButton type="submit" disabled={!isFormValid}>
+            <Button type="submit" disabled={!isFormValid}>
               Sign in
-            </AuthButton>
+            </Button>
           </div>
 
           <div className="flex items-center justify-center gap-3 pt-1 w-full">
@@ -159,7 +159,7 @@ const LoginPage = () => {
             </p>
           </div>
 
-          <AuthButton variant="secondary">Continue with Google</AuthButton>
+          <Button variant="secondary">Continue with Google</Button>
         </form>
       </div>
     </AuthCard>
