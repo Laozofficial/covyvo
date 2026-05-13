@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeClosed, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 
+import Checkbox from "../../../src/components/checkbox";
+import Input from "../../../src/components/input";
 import { useToast } from "../../../src/store/toastState";
 import Button from "../../../src/components/button";
 import {
   AuthBrand,
   AuthCard,
-  AuthCheckbox,
-  AuthField,
   AuthHeading,
   AuthRow,
   AuthSeparator,
@@ -78,14 +78,14 @@ const LoginPage = () => {
         />
 
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-          <AuthField
+          <Input
             id="email"
             label="Email"
             type="email"
             placeholder="hello@mymail.com"
             leftIcon={<Mail size={18} />}
             value={values.email}
-            onChange={(e) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setValues((current) => ({ ...current, email: e.target.value }))
             }
             onBlur={() =>
@@ -95,7 +95,7 @@ const LoginPage = () => {
               shouldShowError("email") ? fieldErrors.email?.[0] : undefined
             }
           />
-          <AuthField
+          <Input
             id="password"
             label="Password"
             type={showPassword ? "text" : "password"}
@@ -108,15 +108,11 @@ const LoginPage = () => {
                 className="text-[#3B3E42]"
                 onClick={() => setShowPassword((current) => !current)}
               >
-                {showPassword ? (
-                  <EyeClosed size={18} />
-                ) : (
-                  <Eye size={18} />
-                )}{" "}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             }
             value={values.password}
-            onChange={(e) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setValues((current) => ({ ...current, password: e.target.value }))
             }
             onBlur={() =>
@@ -131,7 +127,7 @@ const LoginPage = () => {
 
           <AuthRow
             left={
-              <AuthCheckbox
+              <Checkbox
                 id="keepLoggedIn"
                 label="Keep me logged in"
                 defaultChecked

@@ -6,11 +6,11 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 
 import Button from "../../../src/components/button";
+import Input from "../../../src/components/input";
 import { useToast } from "../../../src/store/toastState";
 import {
   AuthBrand,
   AuthCard,
-  AuthField,
   AuthHeading,
   AuthSeparator,
 } from "../../../src/shared/auth/AuthUI";
@@ -90,14 +90,14 @@ const RegisterPage = () => {
       />
 
       <form className="mt-6 flex flex-col gap-[16px]" onSubmit={onSubmit}>
-        <AuthField
+        <Input
           id="fullName"
           label="Full name"
           type="text"
           placeholder="John Doe"
           leftIcon={<User size={18} />}
           value={values.fullName}
-          onChange={(e) =>
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setValues((current) => ({ ...current, fullName: e.target.value }))
           }
           onBlur={() =>
@@ -107,14 +107,14 @@ const RegisterPage = () => {
             shouldShowError("fullName") ? fieldErrors.fullName?.[0] : undefined
           }
         />
-        <AuthField
+        <Input
           id="workMail"
           label="Work mail"
           type="email"
           placeholder="hello@mymail.com"
           leftIcon={<Mail size={18} />}
           value={values.workMail}
-          onChange={(e) =>
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setValues((current) => ({ ...current, workMail: e.target.value }))
           }
           onBlur={() =>
@@ -124,7 +124,7 @@ const RegisterPage = () => {
             shouldShowError("workMail") ? fieldErrors.workMail?.[0] : undefined
           }
         />
-        <AuthField
+        <Input
           id="password"
           label="Password"
           type={showPassword ? "text" : "password"}
@@ -141,7 +141,7 @@ const RegisterPage = () => {
             </button>
           }
           value={values.password}
-          onChange={(e) =>
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setValues((current) => ({ ...current, password: e.target.value }))
           }
           onBlur={() =>

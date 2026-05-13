@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 
 import Button from "../../../src/components/button";
+import Input from "../../../src/components/input";
 import {
   AuthBrand,
   AuthCard,
-  AuthField,
   AuthHeading,
   AuthSeparator,
 } from "../../../src/shared/auth/AuthUI";
@@ -23,7 +23,7 @@ const ResetPasswordPage = () => {
         />
 
         <form className="mt-6 space-y-4">
-          <AuthField
+          <Input
             id="email"
             label="Email"
             type="email"
