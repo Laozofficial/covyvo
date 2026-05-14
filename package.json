@@ -11,9 +11,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.87.4",
+    "lucide-react": "^0.539.0",
     "next": "latest",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
