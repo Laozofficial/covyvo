@@ -2,14 +2,19 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ReactNode } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { AuthTenant, AuthUser } from '../lib/auth-api'
 import {
   BanknoteIcon,
   BarChartIcon,
   BookIcon,
+  BranchIcon,
+  BuildingIcon,
   CalculatorIcon,
+  CalendarIcon,
   CartIcon,
+  ChevronDownIcon,
+  CoinIcon,
   CreditCardIcon,
   DownloadIcon,
   FileTextIcon,
@@ -28,74 +33,165 @@ import {
 type Item = {
   label: string
   href?: string
-  icon: ReactNode
+  icon?: ReactNode
   locked?: boolean
   badge?: string
 }
 
-type Section = { title: string; items: Item[] }
+/**
+ * Aligned with the Covyvo Phase 1 product spec. Each `Module` is a
+ * collapsible top-level group in the sidebar. Items inside can be split
+ * into named sub-areas (e.g. Finance → Accounting / Commercial / Fixed
+ * Assets) using `subHeader` markers — those render as small dividers.
+ *
+ * `locked: true` items are spec'd but not yet built; they appear greyed
+ * with a lock icon so users see what's coming.
+ */
+type SubHeader = { kind: 'sub'; label: string }
+type Entry = ({ kind: 'item' } & Item) | SubHeader
 
-const sections: Section[] = [
+type Module = {
+  key: string
+  title: string
+  icon: ReactNode
+  entries: Entry[]
+}
+
+const MODULES: Module[] = [
   {
+    key: 'workspace',
     title: 'Workspace',
-    items: [{ label: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> }],
-  },
-  {
-    title: 'People',
-    items: [
-      { label: 'Employees', href: '/dashboard/people/employees', icon: <UsersIcon /> },
-      { label: 'Roles & Permissions', href: '/dashboard/people/roles', icon: <ShieldIcon /> },
+    icon: <HomeIcon />,
+    entries: [
+      { kind: 'item', label: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
     ],
   },
   {
+    key: 'finance',
     title: 'Finance',
-    items: [
-      { label: 'Chart of Accounts', href: '/dashboard/finance/accounts', icon: <BookIcon /> },
-      { label: 'Journal Entries', href: '/dashboard/finance/journals', icon: <FileTextIcon /> },
-      { label: 'Invoicing', icon: <ReceiptIcon />, locked: true },
-      { label: 'Banking', icon: <CreditCardIcon />, locked: true },
+    icon: <BookIcon />,
+    entries: [
+      { kind: 'sub', label: 'Accounting' },
+      { kind: 'item', label: 'Chart of Accounts', href: '/dashboard/finance/accounts', icon: <BookIcon /> },
+      { kind: 'item', label: 'Journal Entries', href: '/dashboard/finance/journals', icon: <FileTextIcon /> },
+      { kind: 'item', label: 'General Ledger', icon: <BookIcon />, locked: true },
+      { kind: 'item', label: 'Accounts Receivable', icon: <ReceiptIcon />, locked: true },
+      { kind: 'item', label: 'Accounts Payable', icon: <ReceiptIcon />, locked: true },
+      { kind: 'item', label: 'Bank Reconciliation', icon: <CreditCardIcon />, locked: true },
+      { kind: 'sub', label: 'Commercial' },
+      { kind: 'item', label: 'Quotations', icon: <FileTextIcon />, locked: true },
+      { kind: 'item', label: 'Customer Invoices', icon: <ReceiptIcon />, locked: true },
+      { kind: 'item', label: 'Credit Notes', icon: <FileTextIcon />, locked: true },
+      { kind: 'item', label: 'Collections', icon: <BanknoteIcon />, locked: true },
+      { kind: 'sub', label: 'Fixed Assets' },
+      { kind: 'item', label: 'Asset Register', icon: <PackageIcon />, locked: true },
+      { kind: 'item', label: 'Depreciation', icon: <CalculatorIcon />, locked: true },
     ],
   },
   {
-    title: 'Payroll',
-    items: [
-      { label: 'Run Payroll', href: '/dashboard/payroll', icon: <BanknoteIcon /> },
-      { label: 'Salary Structures', href: '/dashboard/payroll/structures', icon: <CalculatorIcon /> },
-      { label: 'Tax Schedules', href: '/dashboard/payroll/tax', icon: <FileTextIcon /> },
-      { label: 'Bank Files', href: '/dashboard/payroll/bank-files', icon: <DownloadIcon /> },
+    key: 'people',
+    title: 'People',
+    icon: <UsersIcon />,
+    entries: [
+      { kind: 'sub', label: 'Employees' },
+      { kind: 'item', label: 'Employees', href: '/dashboard/people/employees', icon: <UsersIcon /> },
+      { kind: 'item', label: 'Attendance', icon: <CalendarIcon />, locked: true },
+      { kind: 'sub', label: 'Payroll' },
+      { kind: 'item', label: 'Salary Structures', href: '/dashboard/payroll/structures', icon: <CalculatorIcon /> },
+      { kind: 'item', label: 'Run Payroll', icon: <BanknoteIcon />, locked: true },
+      { kind: 'item', label: 'Loans & Advances', icon: <CoinIcon />, locked: true },
+      { kind: 'sub', label: 'Disbursement' },
+      { kind: 'item', label: 'Bank Files', href: '/dashboard/payroll/bank-files', icon: <DownloadIcon /> },
+      { kind: 'sub', label: 'Self-Service' },
+      { kind: 'item', label: 'Employee Portal', icon: <UsersIcon />, locked: true },
     ],
   },
   {
+    key: 'compliance',
     title: 'Compliance',
-    items: [
-      { label: 'Audit Trail', href: '/dashboard/compliance/audit', icon: <ShieldCheckIcon /> },
-      { label: 'E-Invoicing (NRS-MBS)', icon: <ReceiptIcon />, locked: true },
+    icon: <ShieldIcon />,
+    entries: [
+      { kind: 'sub', label: 'Tax Center' },
+      { kind: 'item', label: 'Tax Schedules', href: '/dashboard/payroll/tax', icon: <FileTextIcon /> },
+      { kind: 'item', label: 'VAT', icon: <FileTextIcon />, locked: true },
+      { kind: 'item', label: 'WHT', icon: <FileTextIcon />, locked: true },
+      { kind: 'item', label: 'PAYE', icon: <FileTextIcon />, locked: true },
+      { kind: 'item', label: 'Pension & NHF', icon: <FileTextIcon />, locked: true },
+      { kind: 'sub', label: 'E-Invoicing' },
+      { kind: 'item', label: 'NRS-MBS Hub', icon: <ReceiptIcon />, locked: true },
+      { kind: 'item', label: 'Transmission Logs', icon: <FileTextIcon />, locked: true },
+      { kind: 'sub', label: 'Other' },
+      { kind: 'item', label: 'Compliance Calendar', icon: <CalendarIcon />, locked: true },
+      { kind: 'item', label: 'Tax Clearance', icon: <ShieldCheckIcon />, locked: true },
+      { kind: 'item', label: 'Audit Trail', href: '/dashboard/compliance/audit', icon: <ShieldCheckIcon /> },
     ],
   },
   {
+    key: 'operations',
     title: 'Operations',
-    items: [
-      { label: 'Inventory', icon: <PackageIcon />, locked: true },
-      { label: 'Procurement', icon: <CartIcon />, locked: true },
-      { label: 'CRM', icon: <HeartHandshakeIcon />, locked: true },
+    icon: <CartIcon />,
+    entries: [
+      { kind: 'sub', label: 'Procurement' },
+      { kind: 'item', label: 'Vendors', icon: <HeartHandshakeIcon />, locked: true },
+      { kind: 'item', label: 'Purchase Orders', icon: <CartIcon />, locked: true },
+      { kind: 'item', label: 'Goods Receipt', icon: <PackageIcon />, locked: true },
+      { kind: 'sub', label: 'Inventory' },
+      { kind: 'item', label: 'Products', icon: <PackageIcon />, locked: true },
+      { kind: 'item', label: 'Warehouses', icon: <BuildingIcon />, locked: true },
+      { kind: 'sub', label: 'Expenses' },
+      { kind: 'item', label: 'Expense Claims', icon: <ReceiptIcon />, locked: true },
     ],
   },
   {
+    key: 'intelligence',
     title: 'Intelligence',
-    items: [
-      { label: 'AI Assistant', icon: <SparklesIcon />, locked: true },
-      { label: 'Reports', icon: <BarChartIcon />, locked: true },
+    icon: <SparklesIcon />,
+    entries: [
+      { kind: 'item', label: 'Ask Ada', icon: <SparklesIcon />, locked: true, badge: 'AI' },
+      { kind: 'item', label: 'Compliance Intel', icon: <ShieldCheckIcon />, locked: true },
     ],
   },
   {
-    title: 'Settings',
-    items: [
-      { label: 'Company Profile', href: '/dashboard/settings/company', icon: <SettingsIcon /> },
-      { label: 'Users', href: '/dashboard/settings/users', icon: <UsersIcon /> },
-      { label: 'Billing', icon: <CreditCardIcon />, locked: true },
+    key: 'reports',
+    title: 'Reports',
+    icon: <BarChartIcon />,
+    entries: [
+      { kind: 'item', label: 'Financial Reports', icon: <BarChartIcon />, locked: true },
+      { kind: 'item', label: 'Payroll Reports', icon: <BarChartIcon />, locked: true },
+      { kind: 'item', label: 'Compliance Reports', icon: <BarChartIcon />, locked: true },
+      { kind: 'item', label: 'E-Invoicing Reports', icon: <BarChartIcon />, locked: true },
+    ],
+  },
+  {
+    key: 'admin',
+    title: 'Administration',
+    icon: <SettingsIcon />,
+    entries: [
+      { kind: 'sub', label: 'Access' },
+      { kind: 'item', label: 'Users', href: '/dashboard/settings/users', icon: <UsersIcon /> },
+      { kind: 'item', label: 'Roles & Permissions', href: '/dashboard/people/roles', icon: <ShieldIcon /> },
+      { kind: 'sub', label: 'Organisation' },
+      { kind: 'item', label: 'Company Profile', href: '/dashboard/settings/company', icon: <SettingsIcon /> },
+      { kind: 'item', label: 'Branches', href: '/dashboard/administration/branches', icon: <BranchIcon /> },
+      { kind: 'item', label: 'Departments', href: '/dashboard/administration/departments', icon: <BuildingIcon /> },
+      { kind: 'sub', label: 'Platform' },
+      { kind: 'item', label: 'Integrations', icon: <SettingsIcon />, locked: true },
+      { kind: 'item', label: 'Subscription & Billing', icon: <CreditCardIcon />, locked: true },
+      { kind: 'item', label: 'Audit Logs', icon: <FileTextIcon />, locked: true },
     ],
   },
 ]
+
+const STORAGE_KEY = 'covyvo-sidebar-open'
+
+function moduleContainsActive(m: Module, pathname: string): boolean {
+  for (const e of m.entries) {
+    if (e.kind !== 'item' || !e.href) continue
+    if (pathname === e.href) return true
+    if (e.href !== '/dashboard' && pathname.startsWith(e.href)) return true
+  }
+  return false
+}
 
 type Props = {
   tenant: AuthTenant | null
@@ -105,6 +201,42 @@ type Props = {
 
 export function Sidebar({ tenant, user, onSignOut }: Props) {
   const pathname = usePathname()
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+
+  // Initialise from localStorage; default to opening only the module that
+  // contains the active route.
+  useEffect(() => {
+    let stored: Record<string, boolean> | null = null
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) stored = JSON.parse(raw) as Record<string, boolean>
+    } catch { /* ignore */ }
+
+    const next: Record<string, boolean> = stored ?? {}
+    // Always open the module of the currently-active route, even if the
+    // user had it collapsed previously — otherwise they'd lose the
+    // active highlight.
+    for (const m of MODULES) {
+      if (moduleContainsActive(m, pathname)) {
+        next[m.key] = true
+      }
+    }
+    if (!stored) {
+      // First visit: open workspace by default too so they always see Dashboard.
+      next.workspace = true
+    }
+    setOpen(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function toggle(key: string) {
+    setOpen((prev) => {
+      const next = { ...prev, [key]: !prev[key] }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
+
   const initials = (user?.fullName ?? user?.email ?? '?')
     .split(/[\s@]+/)
     .filter(Boolean)
@@ -134,21 +266,63 @@ export function Sidebar({ tenant, user, onSignOut }: Props) {
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
-        {sections.map((section) => (
-          <div key={section.title}>
-            <p className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-ink-400">
-              {section.title}
-            </p>
-            <ul className="space-y-0.5">
-              {section.items.map((item) => (
-                <li key={item.label}>
-                  <NavRow item={item} pathname={pathname} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+        {MODULES.map((m) => {
+          const isOpen = !!open[m.key]
+          const isActiveModule = moduleContainsActive(m, pathname)
+          return (
+            <div key={m.key}>
+              <button
+                type="button"
+                onClick={() => toggle(m.key)}
+                aria-expanded={isOpen}
+                className={[
+                  'w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-[12.5px] transition-colors group',
+                  isActiveModule
+                    ? 'text-ink-900 font-bold'
+                    : 'text-ink-700 hover:bg-ink-50 hover:text-ink-900 font-semibold',
+                ].join(' ')}
+              >
+                <span
+                  className={[
+                    '[&>svg]:h-[16px] [&>svg]:w-[16px]',
+                    isActiveModule ? 'text-brand-600' : 'text-ink-500 group-hover:text-ink-800',
+                  ].join(' ')}
+                >
+                  {m.icon}
+                </span>
+                <span className="flex-1 text-left tracking-tight">{m.title}</span>
+                <span
+                  className={[
+                    'text-ink-400 transition-transform duration-150',
+                    isOpen ? 'rotate-0' : '-rotate-90',
+                  ].join(' ')}
+                >
+                  <ChevronDownIcon size={14} />
+                </span>
+              </button>
+
+              {isOpen && m.entries.length > 0 && (
+                <ul className="mt-0.5 mb-1.5 pl-2 pr-1 space-y-0.5">
+                  {m.entries.map((entry, idx) =>
+                    entry.kind === 'sub' ? (
+                      <li
+                        key={`${m.key}-sub-${idx}`}
+                        className="pt-2 pb-0.5 px-2 text-[9.5px] font-bold uppercase tracking-widest text-ink-400"
+                      >
+                        {entry.label}
+                      </li>
+                    ) : (
+                      <li key={`${m.key}-${entry.label}`}>
+                        <NavRow item={entry} pathname={pathname} />
+                      </li>
+                    ),
+                  )}
+                </ul>
+              )}
+            </div>
+          )
+        })}
       </nav>
 
       <div className="border-t border-ink-100 p-3">
@@ -185,19 +359,21 @@ function NavRow({ item, pathname }: { item: Item; pathname: string }) {
       (item.href !== '/dashboard' && pathname.startsWith(item.href)))
 
   const baseClasses =
-    'group flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[12.5px] transition-colors w-full'
+    'group flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-lg text-[12.5px] transition-colors w-full'
 
   if (item.locked) {
     return (
       <button
         type="button"
-        title="Coming soon"
+        title="Coming in a later iteration"
         disabled
         className={`${baseClasses} text-ink-400 cursor-not-allowed`}
       >
-        <span className="text-ink-300 [&>svg]:h-[16px] [&>svg]:w-[16px]">{item.icon}</span>
+        {item.icon && (
+          <span className="text-ink-300 [&>svg]:h-[14px] [&>svg]:w-[14px]">{item.icon}</span>
+        )}
         <span className="flex-1 text-left font-medium">{item.label}</span>
-        <LockClosedIcon size={12} className="text-ink-300" />
+        <LockClosedIcon size={11} className="text-ink-300" />
       </button>
     )
   }
@@ -212,14 +388,16 @@ function NavRow({ item, pathname }: { item: Item; pathname: string }) {
           : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900 font-medium',
       ].join(' ')}
     >
-      <span
-        className={[
-          '[&>svg]:h-[16px] [&>svg]:w-[16px]',
-          isActive ? 'text-brand-600' : 'text-ink-400 group-hover:text-ink-700',
-        ].join(' ')}
-      >
-        {item.icon}
-      </span>
+      {item.icon && (
+        <span
+          className={[
+            '[&>svg]:h-[14px] [&>svg]:w-[14px]',
+            isActive ? 'text-brand-600' : 'text-ink-400 group-hover:text-ink-700',
+          ].join(' ')}
+        >
+          {item.icon}
+        </span>
+      )}
       <span className="flex-1 text-left">{item.label}</span>
       {item.badge && (
         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-brand-100 text-brand-700">

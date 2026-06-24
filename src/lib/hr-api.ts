@@ -1,5 +1,21 @@
 import { api } from './api'
 
+export type Branch = {
+  id: string
+  tenantId: string
+  code: string
+  name: string
+  address: string | null
+  city: string | null
+  state: string | null
+  country: string | null
+  phone: string | null
+  isHeadOffice: boolean
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type Department = {
   id: string
   tenantId: string
@@ -7,6 +23,8 @@ export type Department = {
   name: string
   description: string | null
   headEmployeeId: string | null
+  branchId: string | null
+  branch: Branch | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -104,20 +122,40 @@ function qs(params: Record<string, unknown>) {
 }
 
 export const departmentsApi = {
-  list: (search?: string) =>
+  list: (q: { search?: string; branchId?: string; includeInactive?: boolean; limit?: number } = {}) =>
     api<PagedList<Department>>(
-      `/departments${qs({ search, limit: 100 })}`,
+      `/departments${qs({ ...q, limit: q.limit ?? 100 })}`,
       { auth: true },
     ),
   get: (id: string) => api<Department>(`/departments/${id}`, { auth: true }),
-  create: (body: { name: string; code?: string; description?: string }) =>
+  create: (body: { name: string; code?: string; description?: string; branchId?: string | null }) =>
     api<Department>('/departments', { method: 'POST', body, auth: true }),
   update: (
     id: string,
-    body: Partial<{ name: string; code: string; description: string; isActive: boolean }>,
+    body: Partial<{ name: string; code: string; description: string; branchId: string | null; isActive: boolean }>,
   ) => api<Department>(`/departments/${id}`, { method: 'PATCH', body, auth: true }),
   remove: (id: string) =>
     api<{ message: string }>(`/departments/${id}`, { method: 'DELETE', auth: true }),
+}
+
+export const branchesApi = {
+  list: (q: { search?: string; includeInactive?: boolean; limit?: number } = {}) =>
+    api<PagedList<Branch>>(`/branches${qs({ ...q, limit: q.limit ?? 100 })}`, { auth: true }),
+  get: (id: string) => api<Branch>(`/branches/${id}`, { auth: true }),
+  create: (body: {
+    name: string
+    code?: string
+    address?: string
+    city?: string
+    state?: string
+    country?: string
+    phone?: string
+    isHeadOffice?: boolean
+  }) => api<Branch>('/branches', { method: 'POST', body, auth: true }),
+  update: (id: string, body: Partial<Omit<Branch, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>>) =>
+    api<Branch>(`/branches/${id}`, { method: 'PATCH', body, auth: true }),
+  remove: (id: string) =>
+    api<{ message: string }>(`/branches/${id}`, { method: 'DELETE', auth: true }),
 }
 
 export const employeesApi = {
