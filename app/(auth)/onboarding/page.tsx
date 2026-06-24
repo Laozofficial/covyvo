@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
 import { Alert } from '../../../src/components/ui/Alert'
 import { Button } from '../../../src/components/ui/Button'
+import { CountryStateCityFields } from '../../../src/components/ui/CountryStateCityFields'
 import { SelectField } from '../../../src/components/ui/SelectField'
 import { REGISTRATION_STEPS, Stepper } from '../../../src/components/ui/Stepper'
 import { TextField } from '../../../src/components/ui/TextField'
@@ -45,7 +46,10 @@ export default function OnboardingPage() {
   const [taxId, setTaxId] = useState('')
   const [fiscalYearStartMonth, setStart] = useState('January')
   const [fiscalYearEndMonth, setEnd] = useState('December')
-  const [registeredAddress, setAddress] = useState('')
+  const [streetAddress, setStreetAddress] = useState('')
+  const [country, setCountry] = useState('Nigeria')
+  const [stateRegion, setStateRegion] = useState('')
+  const [city, setCity] = useState('')
   const [baseCurrency, setCurrency] = useState('NGN')
   const [category, setCategory] = useState('small')
 
@@ -63,11 +67,19 @@ export default function OnboardingPage() {
     setToken(token)
   }, [router])
 
+  function composedAddress() {
+    return [streetAddress.trim(), city.trim(), stateRegion.trim(), country.trim()]
+      .filter(Boolean)
+      .join(', ')
+  }
+
   function validate() {
     const next: Record<string, string> = {}
     if (!name.trim()) next.name = 'Company name is required'
     if (!taxId.trim()) next.taxId = 'Tax ID (TIN) is required'
-    if (!registeredAddress.trim()) next.registeredAddress = 'Registered address is required'
+    if (!streetAddress.trim()) next.streetAddress = 'Street address is required'
+    if (!country.trim()) next.country = 'Country is required'
+    if (!stateRegion.trim()) next.stateRegion = 'State is required'
     if (baseCurrency.length !== 3) next.baseCurrency = 'Pick a base currency'
     if (!category) next.category = 'Pick a category'
     setErrors(next)
@@ -87,7 +99,7 @@ export default function OnboardingPage() {
         taxId: taxId.trim(),
         fiscalYearStartMonth,
         fiscalYearEndMonth,
-        registeredAddress: registeredAddress.trim(),
+        registeredAddress: composedAddress(),
         baseCurrency,
         category,
       })
@@ -154,13 +166,27 @@ export default function OnboardingPage() {
           />
         </div>
         <TextField
-          label="Registered address"
-          name="registeredAddress"
-          value={registeredAddress}
-          onChange={(e) => setAddress(e.target.value)}
-          error={errors.registeredAddress}
+          label="Street address"
+          name="streetAddress"
+          value={streetAddress}
+          onChange={(e) => setStreetAddress(e.target.value)}
+          error={errors.streetAddress}
+          hint={!errors.streetAddress ? 'e.g. 12 Adeola Odeku Street, Victoria Island' : undefined}
           icon={<MapPinIcon />}
         />
+        <CountryStateCityFields
+          country={country}
+          state={stateRegion}
+          city={city}
+          onChange={({ country: c, state: s, city: ci }) => {
+            setCountry(c); setStateRegion(s); setCity(ci)
+          }}
+        />
+        {(errors.country || errors.stateRegion) && (
+          <p className="text-xs text-red-600 pl-1">
+            {errors.country || errors.stateRegion}
+          </p>
+        )}
         <SelectField
           label="Base currency"
           name="baseCurrency"
