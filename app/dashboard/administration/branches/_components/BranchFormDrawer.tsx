@@ -4,9 +4,10 @@ import { FormEvent, useEffect, useState } from 'react'
 import { Alert } from '../../../../../src/components/ui/Alert'
 import { Button } from '../../../../../src/components/ui/Button'
 import { Checkbox } from '../../../../../src/components/ui/Checkbox'
+import { CountryStateCityFields } from '../../../../../src/components/ui/CountryStateCityFields'
 import { Drawer } from '../../../../../src/components/ui/Drawer'
 import { TextField } from '../../../../../src/components/ui/TextField'
-import { BranchIcon, BuildingIcon, IdIcon, MapPinIcon, TagIcon } from '../../../../../src/components/ui/icons'
+import { BranchIcon, IdIcon, MapPinIcon, TagIcon } from '../../../../../src/components/ui/icons'
 import { ApiError } from '../../../../../src/lib/api'
 import { Branch, branchesApi } from '../../../../../src/lib/hr-api'
 
@@ -93,11 +94,14 @@ export function BranchFormDrawer({ open, onClose, initial, onSaved }: Props) {
           <TextField label="Code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} icon={<TagIcon />} hint="e.g. LOS-HQ" disabled={editing} />
         </div>
         <TextField label="Address" value={address} onChange={(e) => setAddress(e.target.value)} icon={<MapPinIcon />} hint="e.g. 12 Adeola Odeku Street, Victoria Island" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <TextField label="City" value={city} onChange={(e) => setCity(e.target.value)} icon={<BuildingIcon />} hint="e.g. Lagos" />
-          <TextField label="State" value={state} onChange={(e) => setState(e.target.value)} icon={<BuildingIcon />} hint="e.g. Lagos" />
-          <TextField label="Country" value={country} onChange={(e) => setCountry(e.target.value)} icon={<MapPinIcon />} hint="e.g. Nigeria" />
-        </div>
+        <CountryStateCityFields
+          country={country}
+          state={state}
+          city={city}
+          onChange={({ country: c, state: s, city: ci }) => {
+            setCountry(c); setState(s); setCity(ci)
+          }}
+        />
         <TextField label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} icon={<IdIcon />} hint="e.g. +234 801 234 5678" />
         <div className="space-y-2 pt-1">
           <Checkbox label="This is the head office" checked={isHeadOffice} onChange={(e) => setIsHeadOffice(e.target.checked)} />
