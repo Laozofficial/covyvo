@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '../../../../src/components/EmptyState'
 import { PageHeader } from '../../../../src/components/PageHeader'
@@ -124,14 +125,21 @@ export default function BranchesPage() {
             <tbody className="divide-y divide-ink-100">
               {filtered.map((b) => (
                 <tr key={b.id} className="text-[12.5px]">
-                  <td className="px-4 py-3 font-mono text-[12px] font-semibold text-ink-900">{b.code}</td>
+                  <td className="px-4 py-3 font-mono text-[12px] font-semibold text-ink-900">
+                    <Link href={`/dashboard/administration/branches/${b.id}`} className="hover:text-brand-700">
+                      {b.code}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-ink-900">{b.name}</p>
+                    <Link
+                      href={`/dashboard/administration/branches/${b.id}`}
+                      className="flex items-center gap-2 group"
+                    >
+                      <p className="font-semibold text-ink-900 group-hover:text-brand-700">{b.name}</p>
                       {b.isHeadOffice && (
                         <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-50 text-brand-700">HQ</span>
                       )}
-                    </div>
+                    </Link>
                     {b.address && <p className="text-[11px] text-ink-500 mt-0.5 truncate max-w-[360px]">{b.address}</p>}
                   </td>
                   <td className="px-4 py-3 text-[11.5px] text-ink-600">

@@ -16,10 +16,22 @@ type Props = {
   onClose: () => void
   initial?: Department | null
   branches: Branch[]
+  /** Pre-fill the branch dropdown when creating from a branch context. */
+  defaultBranchId?: string
+  /** Hide the branch dropdown — used on a branch detail page where it's pinned. */
+  lockBranch?: boolean
   onSaved: (d: Department) => void
 }
 
-export function DepartmentFormDrawer({ open, onClose, initial, branches, onSaved }: Props) {
+export function DepartmentFormDrawer({
+  open,
+  onClose,
+  initial,
+  branches,
+  defaultBranchId,
+  lockBranch,
+  onSaved,
+}: Props) {
   const editing = !!initial
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -34,10 +46,10 @@ export function DepartmentFormDrawer({ open, onClose, initial, branches, onSaved
     setName(initial?.name ?? '')
     setCode(initial?.code ?? '')
     setDescription(initial?.description ?? '')
-    setBranchId(initial?.branchId ?? '')
+    setBranchId(initial?.branchId ?? defaultBranchId ?? '')
     setIsActive(initial?.isActive ?? true)
     setError(null)
-  }, [open, initial])
+  }, [open, initial, defaultBranchId])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -83,16 +95,18 @@ export function DepartmentFormDrawer({ open, onClose, initial, branches, onSaved
           <TextField label="Code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} icon={<TagIcon />} hint="e.g. ENG (auto-generated if blank)" disabled={editing} />
         </div>
         <TextField label="Description" value={description} onChange={(e) => setDescription(e.target.value)} icon={<TagIcon />} hint="e.g. Product engineering team" />
-        <SelectField
-          label="Branch"
-          value={branchId}
-          onChange={(e) => setBranchId(e.target.value)}
-          icon={<BranchIcon />}
-          options={[
-            { value: '', label: '— none —' },
-            ...branches.map((b) => ({ value: b.id, label: `${b.code} · ${b.name}` })),
-          ]}
-        />
+        {!lockBranch && (
+          <SelectField
+            label="Branch"
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+            icon={<BranchIcon />}
+            options={[
+              { value: '', label: '— none (standalone) —' },
+              ...branches.map((b) => ({ value: b.id, label: `${b.code} · ${b.name}` })),
+            ]}
+          />
+        )}
         {editing && (
           <div className="pt-1">
             <Checkbox label="Active" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />

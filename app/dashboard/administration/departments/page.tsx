@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '../../../../src/components/EmptyState'
 import { PageHeader } from '../../../../src/components/PageHeader'
@@ -152,13 +153,16 @@ export default function DepartmentsPage() {
                   </td>
                   <td className="px-4 py-3 text-[11.5px] text-ink-600">
                     {d.branch ? (
-                      <span className="inline-flex items-center gap-1 font-semibold">
+                      <Link
+                        href={`/dashboard/administration/branches/${d.branch.id}`}
+                        className="inline-flex items-center gap-1 font-semibold hover:text-brand-700"
+                      >
                         <span className="font-mono">{d.branch.code}</span>
                         <span className="text-ink-500">·</span>
                         {d.branch.name}
-                      </span>
+                      </Link>
                     ) : (
-                      <span className="text-ink-400">—</span>
+                      <span className="text-ink-400 italic">Standalone</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
