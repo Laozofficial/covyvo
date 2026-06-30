@@ -19,6 +19,9 @@ export type CompleteRegistrationPayload = {
   fiscalYearStartMonth: string
   fiscalYearEndMonth: string
   registeredAddress: string
+  country?: string
+  state?: string
+  city?: string
   baseCurrency: string
   category: string
 }
@@ -71,6 +74,9 @@ export type AuthTenant = {
   fiscalYearStartMonth?: string
   fiscalYearEndMonth?: string
   registeredAddress?: string
+  country?: string | null
+  state?: string | null
+  city?: string | null
   baseCurrency?: string
   category?: string
   baseUrl?: string

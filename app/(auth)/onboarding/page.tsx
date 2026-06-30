@@ -67,10 +67,8 @@ export default function OnboardingPage() {
     setToken(token)
   }, [router])
 
-  function composedAddress() {
-    return [streetAddress.trim(), city.trim(), stateRegion.trim(), country.trim()]
-      .filter(Boolean)
-      .join(', ')
+  function streetLine() {
+    return streetAddress.trim()
   }
 
   function validate() {
@@ -99,7 +97,10 @@ export default function OnboardingPage() {
         taxId: taxId.trim(),
         fiscalYearStartMonth,
         fiscalYearEndMonth,
-        registeredAddress: composedAddress(),
+        registeredAddress: streetLine(),
+        country: country.trim() || undefined,
+        state: stateRegion.trim() || undefined,
+        city: city.trim() || undefined,
         baseCurrency,
         category,
       })

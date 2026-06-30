@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { PageHeader } from '../../../../src/components/PageHeader'
 import { Alert } from '../../../../src/components/ui/Alert'
 import { Button } from '../../../../src/components/ui/Button'
+import { CountryStateCityFields } from '../../../../src/components/ui/CountryStateCityFields'
 import { SelectField } from '../../../../src/components/ui/SelectField'
 import { TextField } from '../../../../src/components/ui/TextField'
 import {
@@ -52,6 +53,9 @@ export default function CompanyProfilePage() {
   const [fyStart, setFyStart] = useState('january')
   const [fyEnd, setFyEnd] = useState('december')
   const [address, setAddress] = useState('')
+  const [country, setCountry] = useState('Nigeria')
+  const [stateRegion, setStateRegion] = useState('')
+  const [city, setCity] = useState('')
   const [currency, setCurrency] = useState('NGN')
   const [category, setCategory] = useState('small')
 
@@ -62,17 +66,33 @@ export default function CompanyProfilePage() {
     setFyStart((t.fiscalYearStartMonth ?? 'january').toLowerCase())
     setFyEnd((t.fiscalYearEndMonth ?? 'december').toLowerCase())
     setAddress(t.registeredAddress ?? '')
+    setCountry(t.country ?? 'Nigeria')
+    setStateRegion(t.state ?? '')
+    setCity(t.city ?? '')
     setCurrency((t.baseCurrency ?? 'NGN').toUpperCase())
     setCategory(t.category ?? 'small')
   }
 
   useEffect(() => {
-    // The full tenant payload is already saved to local storage at login /
-    // select-tenant, so we use that as the source of truth here and avoid an
-    // extra round-trip to the tenant-manager service for the read path.
+    // Hydrate from local storage immediately so the form isn't blank,
+    // then refresh from the API so country/state/city land if they were
+    // missing on the cached blob.
     const cached = storage.getActiveTenant<AuthTenant>()
-    if (cached) hydrate(cached)
-    setLoading(false)
+    if (cached) {
+      hydrate(cached)
+      setLoading(false)
+      tenantsApi
+        .get(cached.id)
+        .then((fresh) => {
+          hydrate(fresh)
+          storage.setActiveTenant(fresh)
+        })
+        .catch(() => {
+          /* keep cached values; an explicit error would be noisy here */
+        })
+    } else {
+      setLoading(false)
+    }
   }, [])
 
   async function handleSubmit(e: FormEvent) {
@@ -88,6 +108,9 @@ export default function CompanyProfilePage() {
         fiscalYearStartMonth: fyStart,
         fiscalYearEndMonth: fyEnd,
         registeredAddress: address.trim(),
+        country: country.trim() || undefined,
+        state: stateRegion.trim() || undefined,
+        city: city.trim() || undefined,
         baseCurrency: currency.toUpperCase(),
         category,
       })
@@ -221,11 +244,20 @@ export default function CompanyProfilePage() {
             />
           </div>
           <TextField
-            label="Registered address"
+            label="Street address"
             name="address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             icon={<MapPinIcon />}
+            hint="e.g. 12 Adeola Odeku Street, Victoria Island"
+          />
+          <CountryStateCityFields
+            country={country}
+            state={stateRegion}
+            city={city}
+            onChange={({ country: c, state: s, city: ci }) => {
+              setCountry(c); setStateRegion(s); setCity(ci)
+            }}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <SelectField

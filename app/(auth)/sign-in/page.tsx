@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { FormEvent, useState } from 'react'
 import { Alert } from '../../../src/components/ui/Alert'
 import { Button } from '../../../src/components/ui/Button'
@@ -13,8 +13,22 @@ import { authApi } from '../../../src/lib/auth-api'
 import { storage } from '../../../src/lib/storage'
 import { validateEmail } from '../../../src/lib/validation'
 
+function safeReturnTo(raw: string | null | undefined): string {
+  if (!raw) return '/dashboard'
+  try {
+    const decoded = decodeURIComponent(raw)
+    // Only allow internal paths — block protocol-relative or absolute URLs.
+    if (!decoded.startsWith('/') || decoded.startsWith('//')) return '/dashboard'
+    return decoded
+  } catch {
+    return '/dashboard'
+  }
+}
+
 export default function SignInPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = safeReturnTo(searchParams?.get('returnTo'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -63,7 +77,7 @@ export default function SignInPage() {
           })
         }
         if (result.tenant) storage.setActiveTenant(result.tenant)
-        router.replace('/dashboard')
+        router.replace(returnTo)
         return
       }
 

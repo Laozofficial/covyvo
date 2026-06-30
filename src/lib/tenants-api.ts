@@ -7,6 +7,9 @@ export type UpdateTenantPayload = Partial<{
   fiscalYearStartMonth: string
   fiscalYearEndMonth: string
   registeredAddress: string
+  country: string
+  state: string
+  city: string
   baseCurrency: string
   category: string
 }>
