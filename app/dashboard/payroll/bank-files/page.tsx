@@ -117,6 +117,13 @@ export default function BankFilesPage() {
           icon={<DownloadIcon />}
           title={search || status ? 'No matches' : 'No bank files yet'}
           description={search || status ? 'Try clearing filters above.' : 'Create a salary disbursement batch.'}
+          action={
+            !search && !status ? (
+              <Button onClick={() => { setEditing(null); setDrawerOpen(true) }}>
+                New bank file
+              </Button>
+            ) : null
+          }
         />
       ) : (
         <div className="rounded-2xl border border-ink-200 bg-white overflow-hidden">

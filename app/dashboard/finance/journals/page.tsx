@@ -140,7 +140,20 @@ export default function JournalsPage() {
         <EmptyState
           icon={<FileTextIcon />}
           title={search || status ? 'No matches' : 'No journals yet'}
-          description={search || status ? 'Try clearing filters above.' : 'Record your first transaction.'}
+          description={
+            search || status
+              ? 'Try clearing filters above.'
+              : accounts.length < 2
+                ? 'Add at least two chart-of-accounts entries first, then record your first transaction.'
+                : 'Record your first transaction — debits on one side, credits on the other.'
+          }
+          action={
+            !search && !status && accounts.length >= 2 ? (
+              <Button onClick={() => { setEditing(null); setDrawerOpen(true) }}>
+                New entry
+              </Button>
+            ) : null
+          }
         />
       ) : (
         <div className="rounded-2xl border border-ink-200 bg-white overflow-hidden">

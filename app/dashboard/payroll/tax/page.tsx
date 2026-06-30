@@ -111,6 +111,13 @@ export default function TaxSchedulesPage() {
           icon={<FileTextIcon />}
           title={search || kind ? 'No matches' : 'No tax schedules yet'}
           description={search || kind ? 'Try clearing filters above.' : 'Set up PAYE, pension and NHF schedules to drive payroll.'}
+          action={
+            !search && !kind ? (
+              <Button onClick={() => { setEditing(null); setDrawerOpen(true) }}>
+                New schedule
+              </Button>
+            ) : null
+          }
         />
       ) : (
         <div className="space-y-4">
