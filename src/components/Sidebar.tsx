@@ -136,10 +136,10 @@ const MODULES: Module[] = [
     entries: [
       { kind: 'sub', label: 'Procurement' },
       { kind: 'item', label: 'Vendors', href: '/dashboard/operations/vendors', icon: <HeartHandshakeIcon /> },
-      { kind: 'item', label: 'Purchase Orders', icon: <CartIcon />, locked: true },
-      { kind: 'item', label: 'Goods Receipt', icon: <PackageIcon />, locked: true },
+      { kind: 'item', label: 'Purchase Orders', href: '/dashboard/operations/purchase-orders', icon: <CartIcon /> },
+      { kind: 'item', label: 'Goods Receipts', href: '/dashboard/operations/goods-receipts', icon: <PackageIcon /> },
       { kind: 'sub', label: 'Inventory' },
-      { kind: 'item', label: 'Products', icon: <PackageIcon />, locked: true },
+      { kind: 'item', label: 'Products', href: '/dashboard/operations/products', icon: <PackageIcon /> },
       { kind: 'item', label: 'Warehouses', icon: <BuildingIcon />, locked: true },
       { kind: 'sub', label: 'Expenses' },
       { kind: 'item', label: 'Expense Claims', icon: <ReceiptIcon />, locked: true },
