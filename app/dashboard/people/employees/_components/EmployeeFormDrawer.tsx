@@ -29,6 +29,8 @@ import {
   employeesApi,
 } from '../../../../../src/lib/hr-api'
 
+import { Designation, designationsApi } from '../../../../../src/lib/business-api'
+
 type Props = {
   open: boolean
   onClose: () => void
@@ -111,6 +113,7 @@ type FormState = {
   address: string
 
   departmentId: string
+  designationId: string
   jobTitle: string
   employmentType: string
   employmentStatus: string
@@ -153,6 +156,7 @@ function emptyForm(): FormState {
     address: '',
 
     departmentId: '',
+    designationId: '',
     jobTitle: '',
     employmentType: 'full_time',
     employmentStatus: 'active',
@@ -196,6 +200,7 @@ function fromEmployee(e: Employee): FormState {
     address: e.address ?? '',
 
     departmentId: e.departmentId ?? '',
+    designationId: e.designationId ?? '',
     jobTitle: e.jobTitle ?? '',
     employmentType: e.employmentType,
     employmentStatus: e.employmentStatus,
@@ -242,6 +247,7 @@ function toPayload(s: FormState) {
     address: emptyToUndef(s.address.trim()),
 
     departmentId: emptyToUndef(s.departmentId) as string | undefined,
+    designationId: emptyToUndef(s.designationId) as string | undefined,
     jobTitle: emptyToUndef(s.jobTitle.trim()),
     employmentType: s.employmentType as EmploymentType,
     employmentStatus: s.employmentStatus as EmploymentStatus,
@@ -337,6 +343,29 @@ export function EmployeeFormDrawer({
       ...departments.map((d) => ({ value: d.id, label: d.name })),
     ],
     [departments],
+  )
+
+  // Load designations on open so the Job Title dropdown is populated.
+  const [designations, setDesignations] = useState<Designation[]>([])
+  useEffect(() => {
+    if (!open) return
+    designationsApi
+      .list({ limit: 100 })
+      .then((r) => setDesignations(r.data ?? []))
+      .catch(() => {
+        /* No big deal — the dropdown just stays empty, free-text jobTitle still works. */
+      })
+  }, [open])
+  const designationOptions = useMemo(
+    () => [
+      { value: '', label: '— None —' },
+      ...designations.map((d) => ({
+        value: d.id,
+        label: d.name,
+        hint: d.level ?? undefined,
+      })),
+    ],
+    [designations],
   )
 
   return (
@@ -517,13 +546,27 @@ export function EmployeeFormDrawer({
                 icon={<BuildingIcon />}
               />
             </Row>
-            <TextField
-              label="Job title"
-              value={form.jobTitle}
-              onChange={(e) => patch('jobTitle', e.target.value)}
-              icon={<TagIcon />}
-              hint="e.g. Senior Engineer"
-            />
+            <Row>
+              <SelectField
+                label="Designation"
+                value={form.designationId}
+                onChange={(e) => patch('designationId', e.target.value)}
+                options={designationOptions}
+                icon={<IdIcon />}
+                hint={
+                  designations.length === 0
+                    ? 'Add titles under People → Designations to pick from a managed list'
+                    : undefined
+                }
+              />
+              <TextField
+                label="Job title (free-text)"
+                value={form.jobTitle}
+                onChange={(e) => patch('jobTitle', e.target.value)}
+                icon={<TagIcon />}
+                hint="Override or leave blank to use the designation name"
+              />
+            </Row>
             <Row>
               <SelectField
                 label="Employment type"

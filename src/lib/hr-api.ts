@@ -68,6 +68,7 @@ export type Employee = {
 
   departmentId: string | null
   department: Department | null
+  designationId: string | null
   jobTitle: string | null
   employmentType: EmploymentType
   employmentStatus: EmploymentStatus

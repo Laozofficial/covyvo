@@ -20,6 +20,7 @@ import {
   FileTextIcon,
   HeartHandshakeIcon,
   HomeIcon,
+  IdIcon,
   LockClosedIcon,
   PackageIcon,
   ReceiptIcon,
@@ -79,6 +80,7 @@ const MODULES: Module[] = [
       { kind: 'item', label: 'Accounts Payable', icon: <ReceiptIcon />, locked: true },
       { kind: 'item', label: 'Bank Reconciliation', icon: <CreditCardIcon />, locked: true },
       { kind: 'sub', label: 'Commercial' },
+      { kind: 'item', label: 'Customers', href: '/dashboard/finance/customers', icon: <UsersIcon /> },
       { kind: 'item', label: 'Quotations', icon: <FileTextIcon />, locked: true },
       { kind: 'item', label: 'Customer Invoices', icon: <ReceiptIcon />, locked: true },
       { kind: 'item', label: 'Credit Notes', icon: <FileTextIcon />, locked: true },
@@ -95,6 +97,7 @@ const MODULES: Module[] = [
     entries: [
       { kind: 'sub', label: 'Employees' },
       { kind: 'item', label: 'Employees', href: '/dashboard/people/employees', icon: <UsersIcon /> },
+      { kind: 'item', label: 'Designations', href: '/dashboard/people/designations', icon: <IdIcon /> },
       { kind: 'item', label: 'Attendance', icon: <CalendarIcon />, locked: true },
       { kind: 'sub', label: 'Payroll' },
       { kind: 'item', label: 'Salary Structures', href: '/dashboard/payroll/structures', icon: <CalculatorIcon /> },
@@ -132,7 +135,7 @@ const MODULES: Module[] = [
     icon: <CartIcon />,
     entries: [
       { kind: 'sub', label: 'Procurement' },
-      { kind: 'item', label: 'Vendors', icon: <HeartHandshakeIcon />, locked: true },
+      { kind: 'item', label: 'Vendors', href: '/dashboard/operations/vendors', icon: <HeartHandshakeIcon /> },
       { kind: 'item', label: 'Purchase Orders', icon: <CartIcon />, locked: true },
       { kind: 'item', label: 'Goods Receipt', icon: <PackageIcon />, locked: true },
       { kind: 'sub', label: 'Inventory' },
