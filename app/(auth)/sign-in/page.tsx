@@ -1,8 +1,8 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FormEvent, useState } from 'react'
+import { FormEvent, Suspense, useState } from 'react'
 import { Alert } from '../../../src/components/ui/Alert'
 import { Button } from '../../../src/components/ui/Button'
 import { PasswordField } from '../../../src/components/ui/PasswordField'
@@ -25,7 +25,10 @@ function safeReturnTo(raw: string | null | undefined): string {
   }
 }
 
-export default function SignInPage() {
+// useSearchParams bails out to CSR — Next.js requires the consumer to
+// live inside a Suspense boundary so static export doesn't try to
+// prerender the read.
+function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const returnTo = safeReturnTo(searchParams?.get('returnTo'))
@@ -90,14 +93,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1.5">
-        <h1 className="text-[19px] font-bold text-ink-900 tracking-tight">
-          Welcome back
-        </h1>
-        <p className="text-[12.5px] text-ink-500">Sign in to your Covyvo workspace.</p>
-      </div>
-
+    <>
       {formError && <Alert variant="error">{formError}</Alert>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -134,6 +130,23 @@ export default function SignInPage() {
           Sign in
         </Button>
       </form>
+    </>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1.5">
+        <h1 className="text-[19px] font-bold text-ink-900 tracking-tight">
+          Welcome back
+        </h1>
+        <p className="text-[12.5px] text-ink-500">Sign in to your Covyvo workspace.</p>
+      </div>
+
+      <Suspense fallback={<SignInFallback />}>
+        <SignInForm />
+      </Suspense>
 
       <p className="text-[12.5px] text-ink-500 text-center">
         New to Covyvo?{' '}
@@ -141,6 +154,16 @@ export default function SignInPage() {
           Create an account
         </Link>
       </p>
+    </div>
+  )
+}
+
+function SignInFallback() {
+  return (
+    <div className="space-y-4">
+      <div className="h-12 rounded-xl bg-ink-100 animate-pulse" />
+      <div className="h-12 rounded-xl bg-ink-100 animate-pulse" />
+      <div className="h-10 rounded-lg bg-ink-100 animate-pulse" />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { ChangeEvent, useEffect, useMemo, useState } from 'react'
+import { ChangeEvent, Suspense, useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '../../../../src/components/EmptyState'
 import { PageHeader } from '../../../../src/components/PageHeader'
 import { Alert } from '../../../../src/components/ui/Alert'
@@ -24,6 +24,24 @@ const STATUS_FILTERS: { value: GoodsReceiptStatus | ''; label: string }[] = [
 ]
 
 export default function GoodsReceiptsPage() {
+  // useSearchParams needs to be inside a Suspense boundary so Next's
+  // static prerender step doesn't bail with a CSR-required error.
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <GoodsReceiptsInner />
+    </Suspense>
+  )
+}
+
+function PageSkeleton() {
+  return (
+    <div className="rounded-2xl border border-ink-200 bg-white p-10 flex items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink-200 border-t-brand-600" />
+    </div>
+  )
+}
+
+function GoodsReceiptsInner() {
   const searchParams = useSearchParams()
   const presetOrderId = searchParams?.get('orderId') ?? undefined
 
