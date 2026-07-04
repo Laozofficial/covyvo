@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 
 type Props = {
   title: string
-  description?: string
+  description?: ReactNode
   actions?: ReactNode
 }
 

@@ -1,0 +1,111 @@
+import { Payslip } from '../../../../../../src/lib/payroll-api'
+
+function money(v: string | number | null | undefined, currency = 'NGN') {
+  const n = Number(v ?? 0)
+  const sym = currency === 'NGN' ? '₦' : `${currency} `
+  return sym + n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/**
+ * Renders a payslip as a standalone print document in a new window and
+ * triggers the browser's print dialog — from which the user can "Save as
+ * PDF". Zero dependencies; works in every browser. The document is fully
+ * self-contained (inline styles) so it prints identically everywhere.
+ */
+export function printPayslip(
+  payslip: Payslip,
+  ctx: { companyName?: string; runName?: string; period?: string },
+) {
+  const emp = payslip.employee
+  const name = emp ? `${emp.firstName} ${emp.lastName}`.trim() : 'Employee'
+  const earnings = (payslip.items ?? []).filter((i) => i.kind === 'earning')
+  const deductions = (payslip.items ?? []).filter((i) => i.kind === 'deduction')
+  const currency = payslip.currency
+
+  const row = (label: string, amount: string) =>
+    `<tr><td>${label}</td><td class="amt">${money(amount, currency)}</td></tr>`
+
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8" />
+<title>Payslip — ${name}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 32px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #7c3aed; padding-bottom: 16px; margin-bottom: 20px; }
+  .company { font-size: 20px; font-weight: 800; }
+  .sub { color: #64748b; font-size: 12px; margin-top: 2px; }
+  .title { text-align: right; }
+  .title h1 { font-size: 16px; margin: 0; letter-spacing: .08em; text-transform: uppercase; color: #7c3aed; }
+  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 12.5px; margin-bottom: 20px; }
+  .meta div span { color: #64748b; display: inline-block; width: 120px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; text-transform: uppercase; font-size: 10px; letter-spacing: .06em; color: #64748b; border-bottom: 1px solid #e2e8f0; padding: 8px 0; }
+  td { padding: 7px 0; border-bottom: 1px solid #f1f5f9; }
+  td.amt { text-align: right; font-variant-numeric: tabular-nums; }
+  .col { display: inline-block; width: 48%; vertical-align: top; }
+  .col:first-child { margin-right: 3%; }
+  .subtotal td { font-weight: 700; border-top: 2px solid #e2e8f0; border-bottom: none; }
+  .net { margin-top: 24px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+  .net .label { font-weight: 700; }
+  .net .value { font-size: 20px; font-weight: 800; color: #6d28d9; font-variant-numeric: tabular-nums; }
+  .foot { margin-top: 28px; font-size: 11px; color: #94a3b8; text-align: center; }
+  @media print { body { padding: 0; } .noprint { display: none; } }
+</style></head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <div class="company">${ctx.companyName ?? 'Payslip'}</div>
+        <div class="sub">${ctx.runName ?? ''}${ctx.period ? ` · ${ctx.period}` : ''}</div>
+      </div>
+      <div class="title"><h1>Payslip</h1><div class="sub">${payslip.status}</div></div>
+    </div>
+
+    <div class="meta">
+      <div><span>Employee</span><b>${name}</b></div>
+      <div><span>Staff ID</span>${emp?.employeeCode ?? '—'}</div>
+      <div><span>Job title</span>${emp?.jobTitle ?? '—'}</div>
+      <div><span>Bank</span>${emp?.bankName ?? '—'} ${emp?.bankAccountNumber ?? ''}</div>
+      <div><span>Basic salary</span>${money(payslip.basicSalary, currency)}</div>
+      <div><span>Structure</span>${payslip.salaryStructure?.name ?? 'Default'}</div>
+    </div>
+
+    <div class="col">
+      <table>
+        <thead><tr><th>Earnings</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>
+          ${earnings.map((i) => row(i.name, i.amount)).join('') || '<tr><td>—</td><td class="amt">—</td></tr>'}
+          <tr class="subtotal"><td>Total earnings</td><td class="amt">${money(payslip.totalEarnings, currency)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col">
+      <table>
+        <thead><tr><th>Deductions</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>
+          ${deductions.map((i) => row(i.name, i.amount)).join('') || '<tr><td>—</td><td class="amt">—</td></tr>'}
+          <tr class="subtotal"><td>Total deductions</td><td class="amt">${money(payslip.totalDeductions, currency)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="net">
+      <span class="label">Net pay</span>
+      <span class="value">${money(payslip.netPay, currency)}</span>
+    </div>
+
+    <div class="foot">Generated by Covyvo · This is a computer-generated payslip and needs no signature.</div>
+  </div>
+  <script>window.onload = function(){ window.focus(); window.print(); }</script>
+</body></html>`
+
+  const w = window.open('', '_blank', 'width=820,height=1000')
+  if (!w) {
+    alert('Please allow pop-ups to download the payslip PDF.')
+    return
+  }
+  w.document.open()
+  w.document.write(html)
+  w.document.close()
+}

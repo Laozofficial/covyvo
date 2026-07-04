@@ -165,7 +165,254 @@ export const bankFilesApi = {
   remove: (id: string) => api<{ message: string }>(`/bank-files/${id}`, { method: 'DELETE', auth: true }),
 }
 
+/* ── Payroll runs, setup, schedule, wallet ─────────────────────────── */
+
+export type PayrollRunStatus =
+  | 'draft'
+  | 'computed'
+  | 'approved'
+  | 'partially_paid'
+  | 'paid'
+  | 'void'
+
+export type PayslipStatus = 'pending' | 'computed' | 'paid' | 'void'
+
+export type PayslipItem = {
+  id: string
+  code: string
+  name: string
+  kind: ComponentKind
+  calculationType: string
+  amount: string
+  rate: string | null
+  baseAmount: string | null
+  isTaxable: boolean
+  position: number
+}
+
+export type Payslip = {
+  id: string
+  runId: string
+  employeeId: string
+  employee?: {
+    id: string
+    employeeCode: string
+    firstName: string
+    lastName: string
+    jobTitle: string | null
+    bankName: string | null
+    bankAccountNumber: string | null
+  }
+  salaryStructureId: string | null
+  salaryStructure?: SalaryStructure | null
+  currency: string
+  basicSalary: string
+  totalEarnings: string
+  totalDeductions: string
+  taxableEarnings: string
+  netPay: string
+  status: PayslipStatus
+  paidAt: string | null
+  items?: PayslipItem[]
+  run?: PayrollRun
+}
+
+export type PayrollPayment = {
+  id: string
+  paymentDate: string
+  amount: string
+  method: string
+  reference: string | null
+  voidedAt: string | null
+  createdAt: string
+}
+
+export type PayrollRun = {
+  id: string
+  reference: string
+  name: string
+  periodStart: string
+  periodEnd: string
+  payDate: string | null
+  currency: string
+  status: PayrollRunStatus
+  employeeCount: number
+  totalEarnings: string
+  totalDeductions: string
+  totalNet: string
+  notes: string | null
+  payslips?: Payslip[]
+  payments?: PayrollPayment[]
+  createdAt: string
+}
+
+export type PayrollCadence = 'monthly' | 'semimonthly' | 'biweekly' | 'weekly'
+
+export type PayrollSchedule = {
+  id: string
+  tenantId: string
+  enabled: boolean
+  cadence: PayrollCadence
+  payDay: number
+  autoRun: boolean
+  autoApprove: boolean
+  reminderLeadDays: number
+  defaultStructureId: string | null
+  currency: string
+  lastRunDate: string | null
+  nextRunDate: string | null
+  nextPayDate: string | null
+}
+
+export type SetupEmployeeRow = {
+  id: string
+  employeeCode: string
+  name: string
+  jobTitle: string | null
+  department: string | null
+  baseSalary: string | null
+  currency: string
+  salaryStructureId: string | null
+  salaryStructureName: string | null
+  usingDefault: boolean
+  grossEarnings: string
+  totalDeductions: string
+  netPay: string
+}
+
+export type SetupOverview = {
+  employees: SetupEmployeeRow[]
+  structures: Array<{ id: string; name: string; isDefault: boolean }>
+  defaultStructureId: string | null
+  totals: { employeeCount: number; projectedNet: string }
+}
+
+export type AdjustmentKind = 'bonus' | 'penalty'
+
+export type PayrollAdjustment = {
+  id: string
+  runId: string | null
+  employeeId: string
+  kind: AdjustmentKind
+  label: string
+  amount: string
+  isTaxable: boolean
+  recurring: boolean
+  notes: string | null
+  createdAt: string
+}
+
+export type Wallet = {
+  id: string
+  tenantId: string
+  currency: string
+  balance: string
+  status: string
+}
+
+export type WalletTransaction = {
+  id: string
+  direction: 'credit' | 'debit'
+  amount: string
+  balanceAfter: string
+  source: string
+  status: string
+  provider: string | null
+  reference: string | null
+  payrollRunId: string | null
+  notes: string | null
+  createdAt: string
+}
+
+export const payrollRunsApi = {
+  list: (q: { search?: string; status?: PayrollRunStatus; limit?: number } = {}) =>
+    api<PagedList<PayrollRun>>(`/payroll-runs${qs({ ...q, limit: q.limit ?? 50 })}`, { auth: true }),
+  get: (id: string) => api<PayrollRun>(`/payroll-runs/${id}`, { auth: true }),
+  create: (body: {
+    name: string
+    periodStart: string
+    periodEnd: string
+    payDate?: string
+    currency?: string
+    notes?: string
+    employeeIds?: string[]
+  }) => api<PayrollRun>('/payroll-runs', { method: 'POST', body, auth: true }),
+  update: (id: string, body: Record<string, unknown>) =>
+    api<PayrollRun>(`/payroll-runs/${id}`, { method: 'PATCH', body, auth: true }),
+  compute: (id: string) => api<PayrollRun>(`/payroll-runs/${id}/compute`, { method: 'POST', auth: true }),
+  approve: (id: string) => api<PayrollRun>(`/payroll-runs/${id}/approve`, { method: 'POST', auth: true }),
+  recordPayment: (
+    id: string,
+    body: { paymentDate: string; amount: number; method?: string; reference?: string; notes?: string; coversAll?: boolean; payslipIds?: string[] },
+  ) => api<PayrollRun>(`/payroll-runs/${id}/payments`, { method: 'POST', body, auth: true }),
+  remove: (id: string) => api<{ message: string }>(`/payroll-runs/${id}`, { method: 'DELETE', auth: true }),
+  payslip: (runId: string, payslipId: string) =>
+    api<Payslip>(`/payroll-runs/${runId}/payslips/${payslipId}`, { auth: true }),
+}
+
+export const payrollSetupApi = {
+  overview: () => api<SetupOverview>('/payroll-setup/overview', { auth: true }),
+  assignStructure: (body: { employeeIds: string[]; structureId?: string | null }) =>
+    api<{ updated: number }>('/payroll-setup/assign-structure', { method: 'POST', body, auth: true }),
+}
+
+export const payrollAdjustmentsApi = {
+  list: (q: { runId?: string; employeeId?: string } = {}) =>
+    api<PayrollAdjustment[]>(`/payroll-adjustments${qs(q)}`, { auth: true }),
+  create: (body: {
+    employeeId: string
+    runId?: string
+    kind: AdjustmentKind
+    label: string
+    amount: number
+    isTaxable?: boolean
+    recurring?: boolean
+    notes?: string
+  }) => api<PayrollAdjustment>('/payroll-adjustments', { method: 'POST', body, auth: true }),
+  remove: (id: string) => api<{ message: string }>(`/payroll-adjustments/${id}`, { method: 'DELETE', auth: true }),
+}
+
+export const payrollScheduleApi = {
+  get: () => api<PayrollSchedule>('/payroll-schedule', { auth: true }),
+  upsert: (body: Partial<Omit<PayrollSchedule, 'id' | 'tenantId'>>) =>
+    api<PayrollSchedule>('/payroll-schedule', { method: 'PUT', body, auth: true }),
+  runNow: (body: { approve?: boolean } = {}) =>
+    api<PayrollRun>('/payroll-schedule/run-now', { method: 'POST', body, auth: true }),
+}
+
+export const walletApi = {
+  get: () => api<Wallet>('/wallet', { auth: true }),
+  transactions: (q: { limit?: number } = {}) =>
+    api<PagedList<WalletTransaction>>(`/wallet/transactions${qs({ ...q, limit: q.limit ?? 50 })}`, { auth: true }),
+  fund: (body: { amount: number; email?: string; notes?: string }) =>
+    api<{ settled: boolean; authorizationUrl?: string | null; wallet?: Wallet; transaction: WalletTransaction }>(
+      '/wallet/fund',
+      { method: 'POST', body, auth: true },
+    ),
+}
+
 /* ── presentation helpers ──────────────────────────────────────────── */
+
+export function payrollRunStatusMeta(s: PayrollRunStatus) {
+  const map: Record<PayrollRunStatus, { label: string; chip: string; dot: string }> = {
+    draft:          { label: 'Draft',          chip: 'bg-ink-100 text-ink-700',       dot: 'bg-ink-400' },
+    computed:       { label: 'Computed',       chip: 'bg-sky-50 text-sky-700',         dot: 'bg-sky-500' },
+    approved:       { label: 'Approved',       chip: 'bg-violet-50 text-violet-700',   dot: 'bg-violet-500' },
+    partially_paid: { label: 'Partially paid', chip: 'bg-amber-50 text-amber-700',     dot: 'bg-amber-500' },
+    paid:           { label: 'Paid',           chip: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+    void:           { label: 'Void',           chip: 'bg-rose-50 text-rose-700',       dot: 'bg-rose-500' },
+  }
+  return map[s]
+}
+
+export const payrollCadenceLabel: Record<PayrollCadence, string> = {
+  monthly: 'Monthly',
+  semimonthly: 'Twice a month',
+  biweekly: 'Every 2 weeks',
+  weekly: 'Weekly',
+}
+
+
 
 export function componentKindMeta(k: ComponentKind) {
   return k === 'earning'
