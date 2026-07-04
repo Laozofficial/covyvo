@@ -6,8 +6,9 @@ export type AdaMessage = {
 }
 
 export type AdaChatResponse = {
-  reply: string
-  toolCalls?: number
+  answer: string
+  usedTools?: Array<{ name: string; args: Record<string, unknown> }>
+  keyLooksValid?: boolean
 }
 
 export const aiApi = {

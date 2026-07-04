@@ -37,6 +37,7 @@ type Item = {
   icon?: ReactNode
   locked?: boolean
   badge?: string
+  onClick?: () => void
 }
 
 /**
@@ -99,14 +100,23 @@ const MODULES: Module[] = [
       { kind: 'item', label: 'Employees', href: '/dashboard/people/employees', icon: <UsersIcon /> },
       { kind: 'item', label: 'Designations', href: '/dashboard/people/designations', icon: <IdIcon /> },
       { kind: 'item', label: 'Attendance', icon: <CalendarIcon />, locked: true },
-      { kind: 'sub', label: 'Payroll' },
+      { kind: 'sub', label: 'Self-Service' },
+      { kind: 'item', label: 'Employee Portal', icon: <UsersIcon />, locked: true },
+    ],
+  },
+  {
+    key: 'payroll',
+    title: 'Payroll',
+    icon: <BanknoteIcon />,
+    entries: [
+      { kind: 'sub', label: 'Setup' },
       { kind: 'item', label: 'Salary Structures', href: '/dashboard/payroll/structures', icon: <CalculatorIcon /> },
+      { kind: 'item', label: 'Tax Schedules', href: '/dashboard/payroll/tax', icon: <FileTextIcon /> },
+      { kind: 'sub', label: 'Processing' },
       { kind: 'item', label: 'Run Payroll', icon: <BanknoteIcon />, locked: true },
       { kind: 'item', label: 'Loans & Advances', icon: <CoinIcon />, locked: true },
       { kind: 'sub', label: 'Disbursement' },
       { kind: 'item', label: 'Bank Files', href: '/dashboard/payroll/bank-files', icon: <DownloadIcon /> },
-      { kind: 'sub', label: 'Self-Service' },
-      { kind: 'item', label: 'Employee Portal', icon: <UsersIcon />, locked: true },
     ],
   },
   {
@@ -115,7 +125,6 @@ const MODULES: Module[] = [
     icon: <ShieldIcon />,
     entries: [
       { kind: 'sub', label: 'Tax Center' },
-      { kind: 'item', label: 'Tax Schedules', href: '/dashboard/payroll/tax', icon: <FileTextIcon /> },
       { kind: 'item', label: 'VAT', icon: <FileTextIcon />, locked: true },
       { kind: 'item', label: 'WHT', icon: <FileTextIcon />, locked: true },
       { kind: 'item', label: 'PAYE', icon: <FileTextIcon />, locked: true },
@@ -150,7 +159,13 @@ const MODULES: Module[] = [
     title: 'Intelligence',
     icon: <SparklesIcon />,
     entries: [
-      { kind: 'item', label: 'Ask Ada', icon: <SparklesIcon />, locked: true, badge: 'AI' },
+      {
+        kind: 'item',
+        label: 'Ask Ada',
+        icon: <SparklesIcon />,
+        badge: 'AI',
+        onClick: () => window.dispatchEvent(new CustomEvent('covyvo:open-ada')),
+      },
       { kind: 'item', label: 'Compliance Intel', icon: <ShieldCheckIcon />, locked: true },
     ],
   },
@@ -377,6 +392,28 @@ function NavRow({ item, pathname }: { item: Item; pathname: string }) {
         )}
         <span className="flex-1 text-left font-medium">{item.label}</span>
         <LockClosedIcon size={11} className="text-ink-300" />
+      </button>
+    )
+  }
+
+  if (item.onClick) {
+    return (
+      <button
+        type="button"
+        onClick={item.onClick}
+        className={`${baseClasses} text-ink-600 hover:bg-ink-50 hover:text-ink-900 font-medium`}
+      >
+        {item.icon && (
+          <span className="[&>svg]:h-[14px] [&>svg]:w-[14px] text-ink-400 group-hover:text-ink-700">
+            {item.icon}
+          </span>
+        )}
+        <span className="flex-1 text-left">{item.label}</span>
+        {item.badge && (
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-brand-100 text-brand-700">
+            {item.badge}
+          </span>
+        )}
       </button>
     )
   }

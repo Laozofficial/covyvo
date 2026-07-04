@@ -55,7 +55,7 @@ export function AskAdaPanel({ open, onClose }: Props) {
     setSending(true)
     try {
       const res = await aiApi.chat(message, messages)
-      setMessages([...nextHistory, { role: 'model', text: res.reply }])
+      setMessages([...nextHistory, { role: 'model', text: res.answer }])
     } catch (e) {
       const msg = (e as Error)?.message ?? 'Something went wrong. Try again.'
       setError(msg)

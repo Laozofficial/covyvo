@@ -25,6 +25,14 @@ export function FloatingAiButton() {
   const offsetRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 })
   const movedRef = useRef(false)
 
+  // Global open hook — sidebar (or anywhere) can dispatch a
+  // "covyvo:open-ada" event and the panel pops up.
+  useEffect(() => {
+    function onOpen() { setOpen(true) }
+    window.addEventListener('covyvo:open-ada', onOpen)
+    return () => window.removeEventListener('covyvo:open-ada', onOpen)
+  }, [])
+
   // Initial position: restore from storage or default bottom-right
   useEffect(() => {
     try {
