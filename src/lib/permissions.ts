@@ -55,6 +55,8 @@ export const PERMISSIONS = {
   USERS_INVITE: 'users:invite',
   USERS_UPDATE: 'users:update',
   USERS_DELETE: 'users:delete',
+
+  AI_QUERY: 'ai:query',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]

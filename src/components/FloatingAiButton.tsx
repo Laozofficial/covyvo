@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { AskAdaPanel } from './AskAdaPanel'
 import { SparklesIcon } from './ui/icons'
 
 const STORAGE_KEY = 'covyvo.ai_button_pos'
@@ -20,6 +21,7 @@ function clamp(p: Pos): Pos {
 export function FloatingAiButton() {
   const [pos, setPos] = useState<Pos | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [open, setOpen] = useState(false)
   const offsetRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 })
   const movedRef = useRef(false)
 
@@ -103,13 +105,13 @@ export function FloatingAiButton() {
 
   function onClick() {
     if (movedRef.current) return
-    // Open AI assistant — wire to your modal/drawer here
-    console.log('AI assistant opened')
+    setOpen(true)
   }
 
   if (!pos) return null
 
   return (
+    <>
     <button
       type="button"
       aria-label="Ask AI"
@@ -138,5 +140,7 @@ export function FloatingAiButton() {
     >
       <SparklesIcon size={20} />
     </button>
+    <AskAdaPanel open={open} onClose={() => setOpen(false)} />
+    </>
   )
 }
