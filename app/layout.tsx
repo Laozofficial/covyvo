@@ -14,13 +14,13 @@ export const metadata: Metadata = {
   description:
     'Nigeria-first, compliance-driven SaaS ERP. Payroll, tax, e-invoicing and audit, enforced by default.',
   icons: {
-    icon: '/favicon.svg',
+    icon: "/favicon.svg",
   },
-}
+};
 
 type RootLayoutProps = {
-  children: React.ReactNode
-}
+  children: React.ReactNode;
+};
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
