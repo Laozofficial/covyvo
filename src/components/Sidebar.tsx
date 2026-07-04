@@ -82,7 +82,7 @@ const MODULES: Module[] = [
       { kind: 'sub', label: 'Commercial' },
       { kind: 'item', label: 'Customers', href: '/dashboard/finance/customers', icon: <UsersIcon /> },
       { kind: 'item', label: 'Quotations', icon: <FileTextIcon />, locked: true },
-      { kind: 'item', label: 'Customer Invoices', icon: <ReceiptIcon />, locked: true },
+      { kind: 'item', label: 'Customer Invoices', href: '/dashboard/finance/invoices', icon: <ReceiptIcon /> },
       { kind: 'item', label: 'Credit Notes', icon: <FileTextIcon />, locked: true },
       { kind: 'item', label: 'Collections', icon: <BanknoteIcon />, locked: true },
       { kind: 'sub', label: 'Fixed Assets' },
