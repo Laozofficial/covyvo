@@ -4,6 +4,7 @@ const SELECTION_TENANTS_KEY = 'covyvo.selection_tenants'
 const SETUP_TOKEN_KEY = 'covyvo.setup_token'
 const ACTIVE_USER_KEY = 'covyvo.active_user'
 const ACTIVE_TENANT_KEY = 'covyvo.active_tenant'
+const ACTIVE_BRANCH_KEY = 'covyvo.active_branch'
 const REGISTRATION_TOKEN_KEY = 'covyvo.registration_token'
 const RESET_TOKEN_KEY = 'covyvo.reset_token'
 const PENDING_EMAIL_KEY = 'covyvo.pending_email'
@@ -73,6 +74,16 @@ export const storage = {
     isBrowser() && localStorage.setItem(ACTIVE_TENANT_KEY, JSON.stringify(tenant)),
   clearActiveTenant: () => isBrowser() && localStorage.removeItem(ACTIVE_TENANT_KEY),
 
+  getActiveBranch: <T = unknown>(): T | null => {
+    if (!isBrowser()) return null
+    const raw = localStorage.getItem(ACTIVE_BRANCH_KEY)
+    if (!raw) return null
+    try { return JSON.parse(raw) as T } catch { return null }
+  },
+  setActiveBranch: (branch: unknown) =>
+    isBrowser() && localStorage.setItem(ACTIVE_BRANCH_KEY, JSON.stringify(branch)),
+  clearActiveBranch: () => isBrowser() && localStorage.removeItem(ACTIVE_BRANCH_KEY),
+
   getPendingEmail: () => (isBrowser() ? sessionStorage.getItem(PENDING_EMAIL_KEY) : null),
   setPendingEmail: (email: string) =>
     isBrowser() && sessionStorage.setItem(PENDING_EMAIL_KEY, email),
@@ -83,6 +94,7 @@ export const storage = {
     localStorage.removeItem(ACCESS_TOKEN_KEY)
     localStorage.removeItem(ACTIVE_USER_KEY)
     localStorage.removeItem(ACTIVE_TENANT_KEY)
+    localStorage.removeItem(ACTIVE_BRANCH_KEY)
     sessionStorage.removeItem(SELECTION_TOKEN_KEY)
     sessionStorage.removeItem(SELECTION_TENANTS_KEY)
     sessionStorage.removeItem(REGISTRATION_TOKEN_KEY)

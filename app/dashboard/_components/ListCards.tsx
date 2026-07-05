@@ -1,40 +1,65 @@
 import { ReactNode } from 'react'
 import {
   BanknoteIcon,
+  CartIcon,
   CreditCardIcon,
   FileTextIcon,
+  PackageIcon,
   ReceiptIcon,
+  UsersIcon,
   AlertTriangleIcon,
 } from '../../../src/components/ui/icons'
+import { timeAgo } from '../../../src/lib/insights-api'
 
 /* ---------- Recent Activities ---------- */
 
-type Activity = { title: string; user: string; time: string; icon: ReactNode; iconBg: string; iconColor: string }
+export type ActivityItem = {
+  id: string
+  action: string
+  resource: string
+  summary: string | null
+  userName: string | null
+  createdAt: string
+}
 
-const activities: Activity[] = [
-  { title: 'Payroll run "April 2026" created', user: 'Admin User', time: '8:45 AM', icon: <BanknoteIcon />, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
-  { title: 'Payment to Union Bank', user: 'Admin User', time: '8:45 AM', icon: <CreditCardIcon />, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
-  { title: 'Invoice INV-12345 created', user: 'Admin User', time: '8:45 AM', icon: <ReceiptIcon />, iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
-  { title: 'Journal Entry JE-12345 posted', user: 'Admin User', time: '8:45 AM', icon: <FileTextIcon />, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
-]
+function resourceIcon(resource: string): { icon: ReactNode; iconBg: string; iconColor: string } {
+  const map: Record<string, { icon: ReactNode; iconBg: string; iconColor: string }> = {
+    'payroll-runs': { icon: <BanknoteIcon />, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
+    'payroll-schedule': { icon: <BanknoteIcon />, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
+    wallet: { icon: <CreditCardIcon />, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
+    invoices: { icon: <ReceiptIcon />, iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
+    journals: { icon: <FileTextIcon />, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+    'purchase-orders': { icon: <CartIcon />, iconBg: 'bg-sky-50', iconColor: 'text-sky-600' },
+    'goods-receipts': { icon: <PackageIcon />, iconBg: 'bg-sky-50', iconColor: 'text-sky-600' },
+    employees: { icon: <UsersIcon />, iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
+  }
+  return map[resource] ?? { icon: <FileTextIcon />, iconBg: 'bg-ink-100', iconColor: 'text-ink-500' }
+}
 
-export function RecentActivitiesCard() {
+export function RecentActivitiesCard({ items = [] }: { items?: ActivityItem[] }) {
   return (
     <Card title="Recent activities">
-      <ul className="divide-y divide-ink-100">
-        {activities.map((a, i) => (
-          <li key={i} className="flex items-start gap-3 py-2.5">
-            <span className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${a.iconBg} ${a.iconColor} [&>svg]:h-4 [&>svg]:w-4`}>
-              {a.icon}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-semibold text-ink-900 truncate">{a.title}</p>
-              <p className="text-[10.5px] text-ink-500 font-medium">By {a.user}</p>
-              <p className="text-[10.5px] text-ink-400">{a.time}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {items.length === 0 ? (
+        <p className="py-6 text-center text-[12px] text-ink-400">No activity yet.</p>
+      ) : (
+        <ul className="divide-y divide-ink-100">
+          {items.map((a) => {
+            const meta = resourceIcon(a.resource)
+            return (
+              <li key={a.id} className="flex items-start gap-3 py-2.5">
+                <span className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${meta.iconBg} ${meta.iconColor} [&>svg]:h-4 [&>svg]:w-4`}>
+                  {meta.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold text-ink-900 truncate">{a.summary ?? a.resource}</p>
+                  <p className="text-[10.5px] text-ink-500 font-medium">By {a.userName ?? 'Someone'}</p>
+                  <p className="text-[10.5px] text-ink-400">{timeAgo(a.createdAt)}</p>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </Card>
   )
 }
@@ -84,16 +109,22 @@ export function ComplianceDeadlinesCard() {
 
 type Approval = { title: string; count: number; icon: ReactNode }
 
-const approvals: Approval[] = [
-  { title: 'Payment Vouchers', count: 6, icon: <ReceiptIcon /> },
-  { title: 'Purchase orders', count: 8, icon: <FileTextIcon /> },
-  { title: 'Journal Entries', count: 1, icon: <FileTextIcon /> },
-  { title: 'Payroll Runs', count: 2, icon: <BanknoteIcon /> },
-]
-
-export function ApprovalsCard() {
+export function ApprovalsCard({
+  pendingPayroll = 0,
+  openInvoices = 0,
+  purchaseOrders = 0,
+}: {
+  pendingPayroll?: number
+  openInvoices?: number
+  purchaseOrders?: number
+}) {
+  const approvals: Approval[] = [
+    { title: 'Payroll runs to approve', count: pendingPayroll, icon: <BanknoteIcon /> },
+    { title: 'Open invoices', count: openInvoices, icon: <ReceiptIcon /> },
+    { title: 'Purchase orders', count: purchaseOrders, icon: <FileTextIcon /> },
+  ]
   return (
-    <Card title="Approvals">
+    <Card title="Needs attention">
       <ul className="divide-y divide-ink-100">
         {approvals.map((a, i) => (
           <li key={i} className="flex items-center gap-3 py-3">

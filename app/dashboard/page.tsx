@@ -14,11 +14,7 @@ import {
 } from '../../src/components/ui/icons'
 import { AuthUser } from '../../src/lib/auth-api'
 import { formatNaira, formatNumber } from '../../src/lib/format'
-import {
-  branchesApi,
-  departmentsApi,
-  employeesApi,
-} from '../../src/lib/hr-api'
+import { DashboardSummary, dashboardApi } from '../../src/lib/insights-api'
 import { storage } from '../../src/lib/storage'
 import { AiAlertsCard } from './_components/AiAlertsCard'
 import { CashflowCard } from './_components/CashflowCard'
@@ -33,11 +29,7 @@ import { TopExpensesCard } from './_components/TopExpensesCard'
 
 export default function DashboardPage() {
   const [firstName, setFirstName] = useState('there')
-  const [counts, setCounts] = useState<{ employees: number | null; branches: number | null; departments: number | null }>({
-    employees: null,
-    branches: null,
-    departments: null,
-  })
+  const [summary, setSummary] = useState<DashboardSummary | null>(null)
 
   useEffect(() => {
     const u = storage.getActiveUser<AuthUser>()
@@ -46,22 +38,16 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    // Fire-and-forget; quietly leave counts as null on failure (the tile
-    // falls back to a dash). 401s are handled by the api.ts interceptor.
-    Promise.allSettled([
-      employeesApi.list({ limit: 1 }),
-      branchesApi.list({ limit: 1, includeInactive: true }),
-      departmentsApi.list({ limit: 1, includeInactive: true }),
-    ]).then(([emp, br, dept]) => {
-      setCounts({
-        employees: emp.status === 'fulfilled' ? emp.value.total : null,
-        branches: br.status === 'fulfilled' ? br.value.total : null,
-        departments: dept.status === 'fulfilled' ? dept.value.total : null,
-      })
-    })
+    // Fire-and-forget; quietly leave summary null on failure (tiles show a
+    // dash). 401s are handled by the api.ts interceptor.
+    dashboardApi.summary().then(setSummary).catch(() => setSummary(null))
   }, [])
 
-  const showQuickSetup = counts.employees === 0
+  const kpis = summary?.kpis
+  const counts = summary?.counts
+  const num = (v: number | undefined) => (v === undefined ? '—' : formatNumber(v))
+  const money = (v: number | undefined) => (v === undefined ? '—' : formatNaira(v))
+  const showQuickSetup = counts?.employees === 0
 
   return (
     <div className="py-4">
@@ -83,7 +69,7 @@ export default function DashboardPage() {
               <BranchIcon className="text-brand-600 mb-1" />
               <p className="text-[12.5px] font-semibold text-ink-900">Add a branch</p>
               <p className="text-[11px] text-ink-500">
-                {counts.branches === null ? 'Loading…' : `${counts.branches} so far`}
+                {counts?.branches === undefined ? 'Loading…' : `${counts.branches} so far`}
               </p>
             </Link>
             <Link
@@ -93,7 +79,7 @@ export default function DashboardPage() {
               <BuildingIcon className="text-brand-600 mb-1" />
               <p className="text-[12.5px] font-semibold text-ink-900">Add departments</p>
               <p className="text-[11px] text-ink-500">
-                {counts.departments === null ? 'Loading…' : `${counts.departments} so far`}
+                {counts?.departments === undefined ? 'Loading…' : `${counts.departments} so far`}
               </p>
             </Link>
             <Link
@@ -114,35 +100,33 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
         <KpiCard
           label="Total Revenue"
-          value={formatNaira(52843699)}
+          value={money(kpis?.revenue)}
+          subValue={kpis ? `${formatNaira(kpis.collected)} collected` : undefined}
           icon={<BarChartIcon />}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
-          trend={{ dir: 'up', pct: 20.5, period: 'vs last week', points: [10, 14, 12, 18, 16, 22, 28] }}
         />
         <KpiCard
           label="Total Expense"
-          value={formatNaira(18433000)}
+          value={money(kpis?.expense)}
+          subValue="Procurement + payroll"
           icon={<ReceiptIcon />}
           iconBg="bg-rose-50"
           iconColor="text-rose-600"
-          trend={{ dir: 'up', pct: 8, period: 'vs last week', points: [22, 18, 24, 20, 28, 26, 30] }}
         />
         <KpiCard
           label="Gross Profit"
-          value={formatNaira(34500111)}
+          value={money(kpis?.grossProfit)}
           icon={<CoinIcon />}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
-          trend={{ dir: 'up', pct: 44.1, period: 'vs last week', points: [10, 12, 15, 18, 22, 26, 30] }}
         />
         <KpiCard
-          label="Cash Balance"
-          value={formatNaira(100000000)}
+          label="Wallet Balance"
+          value={money(kpis?.walletBalance)}
           icon={<CoinIcon />}
           iconBg="bg-sky-50"
           iconColor="text-sky-600"
-          trend={{ dir: 'up', pct: 3, period: 'vs last week', points: [20, 22, 21, 23, 24, 26, 28] }}
         />
       </div>
 
@@ -150,31 +134,29 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <KpiCard
           label="Payroll Cost (This month)"
-          value={formatNaira(11556000)}
+          value={money(kpis?.payrollThisMonth)}
           icon={<BanknoteIcon />}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
-          trend={{ dir: 'down', pct: 3, period: 'vs last month', points: [28, 26, 24, 22, 20, 18, 16] }}
         />
         <KpiCard
           label="Employees"
-          value={counts.employees === null ? '—' : formatNumber(counts.employees)}
+          value={num(counts?.employees)}
           icon={<UsersIcon />}
           iconBg="bg-violet-50"
           iconColor="text-violet-600"
         />
         <KpiCard
           label="Pending Approval"
-          value={formatNumber(9)}
+          value={num(counts?.pendingApprovals)}
           icon={<ReceiptIcon />}
           iconBg="bg-orange-50"
           iconColor="text-orange-600"
-          trend={{ dir: 'up', pct: 5, period: 'vs last week', points: [6, 7, 8, 7, 8, 9, 9] }}
         />
         <KpiCard
-          label="Open Invoice"
-          value={formatNumber(21)}
-          subValue={formatNaira(35240000)}
+          label="Open Invoices"
+          value={num(counts?.openInvoices)}
+          subValue={kpis ? `${formatNaira(kpis.receivablesOutstanding)} outstanding` : undefined}
           icon={<TagIcon />}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
@@ -189,9 +171,13 @@ export default function DashboardPage() {
 
       {/* Bottom row — 3 lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <RecentActivitiesCard />
+        <RecentActivitiesCard items={summary?.recentActivity ?? []} />
         <ComplianceDeadlinesCard />
-        <ApprovalsCard />
+        <ApprovalsCard
+          pendingPayroll={counts?.pendingApprovals ?? 0}
+          openInvoices={counts?.openInvoices ?? 0}
+          purchaseOrders={counts?.purchaseOrders ?? 0}
+        />
       </div>
     </div>
   )
