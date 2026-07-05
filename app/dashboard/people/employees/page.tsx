@@ -12,6 +12,7 @@ import {
   UsersIcon,
 } from '../../../../src/components/ui/icons'
 import { ApiError } from '../../../../src/lib/api'
+import { useActiveBranch } from '../../../../src/lib/useActiveBranch'
 import {
   Department,
   Employee,
@@ -43,6 +44,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const { branchId } = useActiveBranch()
   const [search, setSearch] = useState('')
   const [departmentId, setDepartmentId] = useState('')
   const [employmentStatus, setEmploymentStatus] = useState<EmploymentStatus | ''>('')
@@ -66,6 +68,7 @@ export default function EmployeesPage() {
         search: search || undefined,
         departmentId: departmentId || undefined,
         employmentStatus: employmentStatus || undefined,
+        branchId: branchId || undefined,
         limit: 100,
       })
       setEmployees(r.data ?? [])
@@ -86,7 +89,7 @@ export default function EmployeesPage() {
     const t = setTimeout(() => loadEmployees(), 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, departmentId, employmentStatus])
+  }, [search, departmentId, employmentStatus, branchId])
 
   const counts = useMemo(() => {
     const active = employees.filter((e) => e.employmentStatus === 'active').length

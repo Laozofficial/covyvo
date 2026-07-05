@@ -103,6 +103,7 @@ export type Employee = {
 export type EmployeeListQuery = {
   search?: string
   departmentId?: string
+  branchId?: string
   employmentStatus?: EmploymentStatus | ''
   employmentType?: EmploymentType | ''
   includeInactive?: boolean

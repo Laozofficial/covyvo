@@ -8,6 +8,7 @@ import { Alert } from '../../../../src/components/ui/Alert'
 import { Button } from '../../../../src/components/ui/Button'
 import { DownloadIcon, SearchIcon } from '../../../../src/components/ui/icons'
 import { ApiError } from '../../../../src/lib/api'
+import { useActiveBranch } from '../../../../src/lib/useActiveBranch'
 import {
   GoodsReceipt,
   GoodsReceiptStatus,
@@ -49,6 +50,7 @@ function GoodsReceiptsInner() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { branchId } = useActiveBranch()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<GoodsReceiptStatus | ''>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -73,6 +75,7 @@ function GoodsReceiptsInner() {
       const r = await goodsReceiptsApi.list({
         search: search || undefined,
         status: status || undefined,
+        branchId: branchId || undefined,
         limit: 100,
       })
       setItems(r.data ?? [])
@@ -88,7 +91,7 @@ function GoodsReceiptsInner() {
     const t = setTimeout(load, 200)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status])
+  }, [search, status, branchId])
 
   const counts = useMemo(() => {
     const by: Record<string, number> = {}

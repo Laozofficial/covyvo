@@ -8,6 +8,7 @@ import { Button } from '../../../../src/components/ui/Button'
 import { FileTextIcon, SearchIcon } from '../../../../src/components/ui/icons'
 import { ApiError } from '../../../../src/lib/api'
 import { formatMoney } from '../../../../src/lib/finance-api'
+import { useActiveBranch } from '../../../../src/lib/useActiveBranch'
 import { Invoice, InvoiceStatus, invoiceStatusMeta, invoicesApi } from '../../../../src/lib/invoices-api'
 import { InvoiceFormDrawer } from './_components/InvoiceFormDrawer'
 import { RecordPaymentDrawer } from './_components/RecordPaymentDrawer'
@@ -27,6 +28,7 @@ export default function InvoicesPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { branchId } = useActiveBranch()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<InvoiceStatus | ''>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -39,6 +41,7 @@ export default function InvoicesPage() {
       const r = await invoicesApi.list({
         search: search || undefined,
         status: status || undefined,
+        branchId: branchId || undefined,
         limit: 100,
       })
       setItems(r.data ?? [])
@@ -54,7 +57,7 @@ export default function InvoicesPage() {
     const t = setTimeout(load, 200)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status])
+  }, [search, status, branchId])
 
   const stats = useMemo(() => {
     let outstanding = 0

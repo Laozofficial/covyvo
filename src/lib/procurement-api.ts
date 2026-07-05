@@ -174,6 +174,7 @@ export const goodsReceiptsApi = {
     status?: GoodsReceiptStatus
     from?: string
     to?: string
+    branchId?: string
     limit?: number
   } = {}) =>
     api<PagedList<GoodsReceipt>>(`/goods-receipts${qs({ ...q, limit: q.limit ?? 50 })}`, { auth: true }),

@@ -29,7 +29,8 @@ export function TopBar() {
   const branchRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
 
-  // Load branches + restore the persisted active branch.
+  // Load branches + restore the persisted active branch. Defaults to
+  // "All branches" (no filter) unless a branch was previously chosen.
   useEffect(() => {
     branchesApi
       .list({ limit: 100 })
@@ -38,9 +39,9 @@ export function TopBar() {
         setBranches(list)
         const stored = storage.getActiveBranch<Branch>()
         const match = stored ? list.find((b) => b.id === stored.id) : null
-        const initial = match ?? list.find((b) => b.isHeadOffice) ?? list[0] ?? null
-        setActiveBranch(initial)
-        if (initial) storage.setActiveBranch(initial)
+        setActiveBranch(match ?? null)
+        if (match) storage.setActiveBranch(match)
+        else storage.clearActiveBranch()
       })
       .catch(() => undefined)
   }, [])
@@ -75,9 +76,10 @@ export function TopBar() {
     return () => window.removeEventListener('mousedown', onDown)
   }, [])
 
-  function selectBranch(b: Branch) {
+  function selectBranch(b: Branch | null) {
     setActiveBranch(b)
-    storage.setActiveBranch(b)
+    if (b) storage.setActiveBranch(b)
+    else storage.clearActiveBranch()
     setBranchOpen(false)
     window.dispatchEvent(new CustomEvent('covyvo:branch-changed', { detail: b }))
   }
@@ -186,6 +188,14 @@ export function TopBar() {
                 Switch branch
               </div>
               <div className="max-h-[320px] overflow-y-auto py-1">
+                <button
+                  onClick={() => selectBranch(null)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-ink-50"
+                >
+                  <BranchIcon size={13} className="text-ink-400 shrink-0" />
+                  <span className="flex-1 text-[12.5px] font-semibold text-ink-800">All branches</span>
+                  {!activeBranch && <CheckCircleIcon size={15} className="text-brand-600 shrink-0" />}
+                </button>
                 {branches.length === 0 ? (
                   <p className="px-3 py-3 text-[12px] text-ink-400">No branches yet.</p>
                 ) : (

@@ -10,6 +10,7 @@ import { CartIcon, SearchIcon } from '../../../../src/components/ui/icons'
 import { ApiError } from '../../../../src/lib/api'
 import { Vendor, vendorsApi } from '../../../../src/lib/business-api'
 import { formatMoney } from '../../../../src/lib/finance-api'
+import { useActiveBranch } from '../../../../src/lib/useActiveBranch'
 import {
   PurchaseOrder,
   PurchaseOrderStatus,
@@ -34,6 +35,7 @@ export default function PurchaseOrdersPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { branchId } = useActiveBranch()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<PurchaseOrderStatus | ''>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -45,6 +47,7 @@ export default function PurchaseOrdersPage() {
       const r = await purchaseOrdersApi.list({
         search: search || undefined,
         status: status || undefined,
+        branchId: branchId || undefined,
         limit: 100,
       })
       setItems(r.data ?? [])
@@ -63,7 +66,7 @@ export default function PurchaseOrdersPage() {
     const t = setTimeout(load, 200)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status])
+  }, [search, status, branchId])
 
   const vendorById = useMemo(
     () => new Map(vendors.map((v) => [v.id, v])),
