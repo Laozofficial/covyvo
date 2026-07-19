@@ -118,9 +118,10 @@ export default function PayrollRunDetailPage() {
               <Button
                 variant="secondary"
                 loading={busy === 'compute'}
+                title="Optional: pre-fill every payslip from each employee's salary structure. You can edit any amount afterwards."
                 onClick={() => act('compute', () => payrollRunsApi.compute(run.id))}
               >
-                {run.status === 'draft' ? 'Compute' : 'Recompute'}
+                Prefill from structure
               </Button>
             )}
             {canApprove && (
@@ -155,7 +156,12 @@ export default function PayrollRunDetailPage() {
       )}
 
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-[13px] font-bold text-ink-900">Payslips</h2>
+        <div>
+          <h2 className="text-[13px] font-bold text-ink-900">Payslips</h2>
+          {(run.status === 'draft' || run.status === 'computed') && (
+            <p className="text-[11.5px] text-ink-500">Click a payslip to enter or edit amounts, then approve.</p>
+          )}
+        </div>
         {(run.status === 'draft' || run.status === 'computed') && (
           <button
             onClick={() => setAdjOpen(true)}
@@ -212,10 +218,15 @@ export default function PayrollRunDetailPage() {
       {viewing && (
         <PayslipDrawer
           payslip={viewing}
+          editable={run.status === 'draft' || run.status === 'computed'}
           companyName={companyName}
           runName={run.name}
           period={`${run.periodStart} → ${run.periodEnd}`}
           onClose={() => setViewing(null)}
+          onSaved={(updated) => {
+            setRun(updated)
+            setViewing(updated.payslips?.find((p) => p.id === viewing.id) ?? null)
+          }}
         />
       )}
 
@@ -254,25 +265,89 @@ function Tile({ label, value, accent }: { label: string; value: string; accent?:
   )
 }
 
+type EditRow = { name: string; kind: 'earning' | 'deduction'; amount: string; isTaxable: boolean }
+
 function PayslipDrawer({
   payslip,
+  editable,
   companyName,
   runName,
   period,
   onClose,
+  onSaved,
 }: {
   payslip: Payslip
+  editable: boolean
   companyName: string
   runName: string
   period: string
   onClose: () => void
+  onSaved: (run: PayrollRun) => void
 }) {
+  const [editing, setEditing] = useState(false)
+  const [rows, setRows] = useState<EditRow[]>([])
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  function startEdit() {
+    setRows(
+      (payslip.items ?? []).map((i) => ({
+        name: i.name,
+        kind: i.kind,
+        amount: String(Number(i.amount)),
+        isTaxable: i.isTaxable,
+      })),
+    )
+    setEditing(true)
+  }
+
+  function addRow(kind: 'earning' | 'deduction') {
+    setRows((r) => [...r, { name: '', kind, amount: '', isTaxable: kind === 'earning' }])
+  }
+  function updateRow(idx: number, patch: Partial<EditRow>) {
+    setRows((r) => r.map((row, i) => (i === idx ? { ...row, ...patch } : row)))
+  }
+  function removeRow(idx: number) {
+    setRows((r) => r.filter((_, i) => i !== idx))
+  }
+
+  const liveEarnings = editing
+    ? rows.filter((r) => r.kind === 'earning').reduce((s, r) => s + (Number(r.amount) || 0), 0)
+    : Number(payslip.totalEarnings)
+  const liveDeductions = editing
+    ? rows.filter((r) => r.kind === 'deduction').reduce((s, r) => s + (Number(r.amount) || 0), 0)
+    : Number(payslip.totalDeductions)
+  const liveNet = liveEarnings - liveDeductions
+
+  async function save() {
+    setSaving(true)
+    setErr(null)
+    try {
+      const items = rows
+        .filter((r) => r.name.trim())
+        .map((r) => ({
+          name: r.name.trim(),
+          kind: r.kind,
+          amount: Number(r.amount) || 0,
+          isTaxable: r.isTaxable,
+        }))
+      const updated = await payrollRunsApi.updatePayslip(payslip.runId, payslip.id, { items })
+      setEditing(false)
+      onSaved(updated)
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Could not save the payslip')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const earnings = (payslip.items ?? []).filter((i) => i.kind === 'earning')
   const deductions = (payslip.items ?? []).filter((i) => i.kind === 'deduction')
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/30" onClick={onClose} />
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-[min(460px,100vw)] bg-white shadow-2xl flex flex-col">
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-[min(480px,100vw)] bg-white shadow-2xl flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-ink-200">
           <div>
             <div className="font-bold text-ink-900">
@@ -282,24 +357,111 @@ function PayslipDrawer({
           </div>
           <button onClick={onClose} className="text-2xl leading-none text-ink-400 hover:text-ink-700">×</button>
         </div>
+
         <div className="flex-1 overflow-y-auto p-5 space-y-4 text-[12.5px]">
-          <Section title="Earnings" items={earnings} currency={payslip.currency} />
-          <Section title="Deductions" items={deductions} currency={payslip.currency} tone="rose" />
+          {err && <Alert variant="error">{err}</Alert>}
+
+          {editing ? (
+            <>
+              <EditGroup
+                title="Earnings"
+                rows={rows}
+                kind="earning"
+                onUpdate={updateRow}
+                onRemove={removeRow}
+                onAdd={() => addRow('earning')}
+              />
+              <EditGroup
+                title="Deductions"
+                rows={rows}
+                kind="deduction"
+                onUpdate={updateRow}
+                onRemove={removeRow}
+                onAdd={() => addRow('deduction')}
+              />
+            </>
+          ) : (
+            <>
+              <Section title="Earnings" items={earnings} currency={payslip.currency} />
+              <Section title="Deductions" items={deductions} currency={payslip.currency} tone="rose" />
+            </>
+          )}
+
           <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 flex items-center justify-between">
             <span className="font-bold text-ink-800">Net pay</span>
-            <span className="font-bold text-brand-700 text-[16px]">{formatMoney(payslip.netPay, payslip.currency)}</span>
+            <span className="font-bold text-brand-700 text-[16px]">{formatMoney(liveNet, payslip.currency)}</span>
           </div>
         </div>
-        <div className="px-5 py-4 border-t border-ink-200">
-          <Button
-            fullWidth
-            onClick={() => printPayslip(payslip, { companyName, runName, period })}
-          >
-            Download / print PDF
-          </Button>
+
+        <div className="px-5 py-4 border-t border-ink-200 flex gap-2">
+          {editing ? (
+            <>
+              <Button variant="secondary" onClick={() => setEditing(false)} className="flex-1">Cancel</Button>
+              <Button loading={saving} onClick={save} className="flex-1">Save payslip</Button>
+            </>
+          ) : (
+            <>
+              {editable && (
+                <Button variant="secondary" onClick={startEdit} className="flex-1">Edit amounts</Button>
+              )}
+              <Button
+                className="flex-1"
+                onClick={() => printPayslip(payslip, { companyName, runName, period })}
+              >
+                Download PDF
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </>
+  )
+}
+
+function EditGroup({
+  title,
+  rows,
+  kind,
+  onUpdate,
+  onRemove,
+  onAdd,
+}: {
+  title: string
+  rows: EditRow[]
+  kind: 'earning' | 'deduction'
+  onUpdate: (idx: number, patch: Partial<EditRow>) => void
+  onRemove: (idx: number) => void
+  onAdd: () => void
+}) {
+  return (
+    <div>
+      <div className="text-[10.5px] font-bold uppercase tracking-wider text-ink-400 mb-1">{title}</div>
+      <div className="space-y-1.5">
+        {rows.map((r, idx) =>
+          r.kind !== kind ? null : (
+            <div key={idx} className="flex items-center gap-1.5">
+              <input
+                value={r.name}
+                onChange={(e) => onUpdate(idx, { name: e.target.value })}
+                placeholder={kind === 'earning' ? 'e.g. Basic salary' : 'e.g. PAYE'}
+                className="flex-1 h-9 rounded-lg border border-ink-200 px-2.5 text-[12.5px] focus:outline-none focus:border-brand-500"
+              />
+              <input
+                value={r.amount}
+                onChange={(e) => onUpdate(idx, { amount: e.target.value })}
+                inputMode="decimal"
+                placeholder="0.00"
+                className="w-28 h-9 rounded-lg border border-ink-200 px-2.5 text-[12.5px] text-right font-mono focus:outline-none focus:border-brand-500"
+              />
+              <button onClick={() => onRemove(idx)} className="text-ink-400 hover:text-rose-600 px-1 text-lg leading-none">×</button>
+            </div>
+          ),
+        )}
+      </div>
+      <button onClick={onAdd} className="mt-1.5 text-[12px] font-semibold text-brand-600 hover:text-brand-700">
+        + Add {kind}
+      </button>
+    </div>
   )
 }
 

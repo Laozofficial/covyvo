@@ -98,13 +98,22 @@ export default function PayrollSchedulePage() {
       {error && <div className="mb-4"><Alert variant="error">{error}</Alert></div>}
       {ok && <div className="mb-4"><Alert variant="success">{ok}</Alert></div>}
 
+      <div className="mb-4">
+        <Alert variant="info">
+          Payroll is <b>run manually</b> for now. You can save your preferred cadence and pay
+          day here, but automatic runs and reminders are coming soon — for each pay period,
+          use <b>Run payroll now</b> (or create a run from Run Payroll) and enter amounts.
+        </Alert>
+      </div>
+
       <div className="max-w-2xl space-y-4">
         <div className="rounded-2xl border border-ink-200 bg-white p-5">
           <ToggleRow
             label="Enable automatic payroll"
-            hint="When on, Covyvo creates the run for you on each pay day."
-            checked={sched.enabled}
-            onChange={(v) => set('enabled', v)}
+            hint="Coming soon — automatic runs are disabled while payroll is manual."
+            checked={false}
+            onChange={() => undefined}
+            disabled
           />
         </div>
 
@@ -148,19 +157,20 @@ export default function PayrollSchedulePage() {
           </Field>
         </div>
 
-        <div className="rounded-2xl border border-ink-200 bg-white p-5 space-y-4">
+        <div className="rounded-2xl border border-ink-200 bg-white p-5 space-y-4 opacity-60">
           <ToggleRow
             label="Auto-create the run"
-            hint="Creates and computes the payroll run automatically on the pay day."
-            checked={sched.autoRun}
-            onChange={(v) => set('autoRun', v)}
+            hint="Coming soon — runs are created manually for now."
+            checked={false}
+            onChange={() => undefined}
+            disabled
           />
           <ToggleRow
             label="Auto-approve after computing"
-            hint="Skips manual review — the run is approved and ready to pay."
-            checked={sched.autoApprove}
-            onChange={(v) => set('autoApprove', v)}
-            disabled={!sched.autoRun}
+            hint="Coming soon."
+            checked={false}
+            onChange={() => undefined}
+            disabled
           />
         </div>
 

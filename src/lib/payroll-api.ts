@@ -348,6 +348,19 @@ export const payrollRunsApi = {
   remove: (id: string) => api<{ message: string }>(`/payroll-runs/${id}`, { method: 'DELETE', auth: true }),
   payslip: (runId: string, payslipId: string) =>
     api<Payslip>(`/payroll-runs/${runId}/payslips/${payslipId}`, { auth: true }),
+  updatePayslip: (
+    runId: string,
+    payslipId: string,
+    body: {
+      basicSalary?: number
+      items: Array<{ code?: string; name: string; kind: ComponentKind; amount: number; isTaxable?: boolean }>
+    },
+  ) =>
+    api<PayrollRun>(`/payroll-runs/${runId}/payslips/${payslipId}`, {
+      method: 'PATCH',
+      body,
+      auth: true,
+    }),
 }
 
 export const payrollSetupApi = {
