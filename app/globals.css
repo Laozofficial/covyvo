@@ -48,3 +48,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Tailwind v4 defaults buttons to cursor:default. Restore a pointer on
+   everything interactive so all clickable controls/links feel clickable. */
+a[href],
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+label[for],
+select:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[role='button'][aria-disabled='true'],
+[aria-disabled='true'],
+[disabled] {
+  cursor: not-allowed;
+}
