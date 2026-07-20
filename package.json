@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
     "country-state-city": "^3.2.1",
+    "lucide-react": "^1.25.0",
     "next": "latest",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
