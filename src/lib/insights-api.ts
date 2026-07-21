@@ -72,6 +72,30 @@ export const dashboardApi = {
   summary: () => api<DashboardSummary>('/dashboard/summary', { auth: true }),
 }
 
+/* ── Compliance Intelligence ─────────────────────────────────────────── */
+
+export type IntelSeverity = 'info' | 'warning' | 'critical'
+
+export type IntelSignal = {
+  code: string
+  severity: IntelSeverity
+  title: string
+  detail: string
+  actionUrl?: string
+}
+
+export type Insights = {
+  generatedAt: string
+  alerts: IntelSignal[]
+  anomalies: IntelSignal[]
+  risks: IntelSignal[]
+  summary: { alerts: number; anomalies: number; risks: number; total: number }
+}
+
+export const intelligenceApi = {
+  insights: () => api<Insights>('/intelligence/insights', { auth: true }),
+}
+
 /* ── Notifications ───────────────────────────────────────────────────── */
 
 export type Notification = {

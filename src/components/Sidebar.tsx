@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ReactNode, useEffect, useState } from 'react'
 import { AuthTenant, AuthUser } from '../lib/auth-api'
+import { Logo } from './Logo'
 import {
   BanknoteIcon,
   BarChartIcon,
@@ -169,7 +170,7 @@ const MODULES: Module[] = [
         badge: 'AI',
         onClick: () => window.dispatchEvent(new CustomEvent('covyvo:open-ada')),
       },
-      { kind: 'item', label: 'Compliance Intel', icon: <ShieldCheckIcon />, locked: true },
+      { kind: 'item', label: 'Compliance Intelligence', href: '/dashboard/intelligence', icon: <ShieldCheckIcon /> },
     ],
   },
   {
@@ -267,7 +268,10 @@ export function Sidebar({ tenant, user, onSignOut }: Props) {
 
   return (
     <aside className="w-[248px] shrink-0 border-r border-ink-200 bg-white flex flex-col h-screen sticky top-0">
-      <div className="px-4 py-4 border-b border-ink-100">
+      <div className="px-4 pt-4 pb-2">
+        <Logo height={24} />
+      </div>
+      <div className="px-4 pb-4 border-b border-ink-100">
         {tenant?.name ? (
           <div className="flex items-center gap-2.5 rounded-xl bg-ink-50 px-3 py-2.5">
             <div className="h-9 w-9 rounded-lg bg-brand-600 text-white flex items-center justify-center text-[13px] font-bold shrink-0">

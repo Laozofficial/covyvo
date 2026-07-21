@@ -1,16 +1,24 @@
+import Image from 'next/image'
+import logo from '../assets/logo/logo.png'
+
 type Props = {
   className?: string
+  /** `light` inverts the (dark navy) mark to white for use on dark backgrounds. */
   variant?: 'dark' | 'light'
+  /** Rendered height in px; width scales to preserve aspect ratio. */
+  height?: number
 }
 
-export function Logo({ className = '', variant = 'dark' }: Props) {
-  const color = variant === 'light' ? 'text-white' : 'text-ink-900'
+export function Logo({ className = '', variant = 'dark', height = 28 }: Props) {
   return (
-    <div className={`flex items-center gap-2 ${color} ${className}`}>
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-600 text-white font-bold">
-        C
-      </span>
-      <span className="text-xl font-semibold tracking-tight">Covyvo</span>
-    </div>
+    <Image
+      src={logo}
+      alt="Covyvo"
+      priority
+      height={height}
+      width={Math.round(height * (logo.width / logo.height))}
+      className={`${variant === 'light' ? 'brightness-0 invert' : ''} w-auto ${className}`}
+      style={{ height }}
+    />
   )
 }

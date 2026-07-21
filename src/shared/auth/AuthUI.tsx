@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
-import CovyvoLogoAssets from "../../assets/logo";
+import covyvoLogo from "../../assets/logo/logo.png";
 
 type AuthCardProps = {
   children: ReactNode;
@@ -18,7 +18,7 @@ export const AuthBrand = () => {
   return (
     <div className="flex items-center gap-2 ">
       <Image
-        src={CovyvoLogoAssets.CovyvoAuthLogo}
+        src={covyvoLogo}
         alt="Covyvo"
         priority
         className="h-auto w-[168px]"
