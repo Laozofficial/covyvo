@@ -1,0 +1,143 @@
+import { api } from './api'
+
+function qs(p: Record<string, unknown>) {
+  const s = new URLSearchParams()
+  for (const [k, v] of Object.entries(p)) {
+    if (v === undefined || v === null || v === '') continue
+    s.set(k, String(v))
+  }
+  const str = s.toString()
+  return str ? `?${str}` : ''
+}
+
+export type AgeBuckets = {
+  current: string
+  d1_30: string
+  d31_60: string
+  d61_90: string
+  d90_plus: string
+}
+
+export const BUCKET_LABELS: Record<keyof AgeBuckets, string> = {
+  current: 'Current',
+  d1_30: '1–30 days',
+  d31_60: '31–60 days',
+  d61_90: '61–90 days',
+  d90_plus: '90+ days',
+}
+
+/* ── General Ledger ──────────────────────────────────────────────────── */
+
+export type GlLine = {
+  date: string
+  reference: string
+  description: string | null
+  debit: string
+  credit: string
+  balance: string
+}
+export type GlAccount = {
+  accountId: string
+  code: string
+  name: string
+  accountType: string
+  normalBalance: 'debit' | 'credit'
+  openingBalance: string
+  closingBalance: string
+  lines: GlLine[]
+}
+export type GeneralLedger = { from: string | null; to: string | null; accounts: GlAccount[] }
+
+/* ── Trial Balance ───────────────────────────────────────────────────── */
+
+export type TrialBalanceRow = {
+  accountId: string
+  code: string
+  name: string
+  accountType: string
+  debit: string
+  credit: string
+}
+export type TrialBalance = {
+  asOf: string
+  rows: TrialBalanceRow[]
+  totals: { debit: string; credit: string }
+  balanced: boolean
+}
+
+/* ── AR / AP ─────────────────────────────────────────────────────────── */
+
+export type ArRow = {
+  id: string
+  reference: string
+  customer: string | null
+  issueDate: string
+  dueDate: string
+  total: string
+  paid: string
+  outstanding: string
+  bucket: keyof AgeBuckets
+  currency: string
+  status: string
+}
+export type AccountsReceivable = {
+  asOf: string
+  rows: ArRow[]
+  buckets: AgeBuckets
+  total: string
+  count: number
+}
+
+export type ApRow = {
+  id: string
+  reference: string
+  vendor: string | null
+  orderDate: string
+  expectedDate: string | null
+  total: string
+  outstanding: string
+  bucket: keyof AgeBuckets
+  currency: string
+  status: string
+}
+export type AccountsPayable = {
+  asOf: string
+  rows: ApRow[]
+  buckets: AgeBuckets
+  total: string
+  count: number
+  note: string
+}
+
+/* ── Collections ─────────────────────────────────────────────────────── */
+
+export type CollectionRow = {
+  id: string
+  paymentDate: string
+  amount: string
+  method: string
+  reference: string | null
+  invoiceReference: string
+  customer: string | null
+}
+export type Collections = {
+  from: string
+  to: string
+  rows: CollectionRow[]
+  total: string
+  count: number
+  byMethod: Record<string, string>
+}
+
+export const reportsApi = {
+  generalLedger: (q: { accountId?: string; from?: string; to?: string } = {}) =>
+    api<GeneralLedger>(`/reports/general-ledger${qs(q)}`, { auth: true }),
+  trialBalance: (q: { asOf?: string } = {}) =>
+    api<TrialBalance>(`/reports/trial-balance${qs(q)}`, { auth: true }),
+  accountsReceivable: (q: { asOf?: string } = {}) =>
+    api<AccountsReceivable>(`/reports/accounts-receivable${qs(q)}`, { auth: true }),
+  accountsPayable: (q: { asOf?: string } = {}) =>
+    api<AccountsPayable>(`/reports/accounts-payable${qs(q)}`, { auth: true }),
+  collections: (q: { from?: string; to?: string } = {}) =>
+    api<Collections>(`/reports/collections${qs(q)}`, { auth: true }),
+}
