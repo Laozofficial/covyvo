@@ -1,9 +1,11 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { EmptyState } from '../../../../src/components/EmptyState'
 import { PageHeader } from '../../../../src/components/PageHeader'
 import { Alert } from '../../../../src/components/ui/Alert'
+import { Button } from '../../../../src/components/ui/Button'
 import { ReceiptIcon } from '../../../../src/components/ui/icons'
 import { ApiError } from '../../../../src/lib/api'
 import { formatMoney } from '../../../../src/lib/finance-api'
@@ -31,6 +33,11 @@ export default function AccountsReceivablePage() {
       <PageHeader
         title="Accounts Receivable"
         description={data ? `${data.count} open invoice${data.count === 1 ? '' : 's'} · as of ${data.asOf}` : 'Money owed to you by customers'}
+        actions={
+          <Link href="/dashboard/finance/invoices?new=1">
+            <Button>Raise invoice</Button>
+          </Link>
+        }
       />
 
       {error && <div className="mb-4"><Alert variant="error">{error}</Alert></div>}

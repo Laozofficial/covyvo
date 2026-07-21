@@ -59,6 +59,14 @@ export default function InvoicesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, status, branchId])
 
+  // Open the create drawer when arrived via a "Raise invoice" CTA (?new=1).
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('new') === '1') {
+      setEditing(null)
+      setDrawerOpen(true)
+    }
+  }, [])
+
   const stats = useMemo(() => {
     let outstanding = 0
     let paid = 0

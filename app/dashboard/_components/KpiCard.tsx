@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import Link from 'next/link'
 import { ArrowDownIcon, ArrowUpIcon } from '../../../src/components/ui/icons'
 import { Sparkline } from './Sparkline'
 
@@ -9,12 +10,13 @@ type Props = {
   icon: ReactNode
   iconBg: string
   iconColor: string
+  href?: string
   trend?: { dir: 'up' | 'down'; pct: number; period: string; points?: number[] }
 }
 
-export function KpiCard({ label, value, subValue, icon, iconBg, iconColor, trend }: Props) {
-  return (
-    <div className="rounded-2xl bg-white border border-ink-200 p-4 flex flex-col gap-3 hover:shadow-[0_4px_16px_-8px_rgba(15,23,42,0.1)] transition-shadow">
+export function KpiCard({ label, value, subValue, icon, iconBg, iconColor, href, trend }: Props) {
+  const inner = (
+    <div className="rounded-2xl bg-white border border-ink-200 p-4 flex flex-col gap-3 h-full hover:shadow-[0_4px_16px_-8px_rgba(15,23,42,0.1)] hover:border-ink-300 transition-all">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11.5px] font-semibold text-ink-500 uppercase tracking-wide">
           {label}
@@ -57,5 +59,13 @@ export function KpiCard({ label, value, subValue, icon, iconBg, iconColor, trend
         )}
       </div>
     </div>
+  )
+
+  return href ? (
+    <Link href={href} className="block">
+      {inner}
+    </Link>
+  ) : (
+    inner
   )
 }

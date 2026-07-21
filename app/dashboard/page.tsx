@@ -105,6 +105,7 @@ export default function DashboardPage() {
           icon={<BarChartIcon />}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
+          href="/dashboard/finance/invoices"
         />
         <KpiCard
           label="Total Expense"
@@ -113,6 +114,7 @@ export default function DashboardPage() {
           icon={<ReceiptIcon />}
           iconBg="bg-rose-50"
           iconColor="text-rose-600"
+          href="/dashboard/operations/purchase-orders"
         />
         <KpiCard
           label="Gross Profit"
@@ -120,6 +122,7 @@ export default function DashboardPage() {
           icon={<CoinIcon />}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
+          href="/dashboard/finance/trial-balance"
         />
         <KpiCard
           label="Wallet Balance"
@@ -127,6 +130,7 @@ export default function DashboardPage() {
           icon={<CoinIcon />}
           iconBg="bg-sky-50"
           iconColor="text-sky-600"
+          href="/dashboard/payroll/wallet"
         />
       </div>
 
@@ -138,6 +142,7 @@ export default function DashboardPage() {
           icon={<BanknoteIcon />}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
+          href="/dashboard/payroll/runs"
         />
         <KpiCard
           label="Employees"
@@ -145,6 +150,7 @@ export default function DashboardPage() {
           icon={<UsersIcon />}
           iconBg="bg-violet-50"
           iconColor="text-violet-600"
+          href="/dashboard/people/employees"
         />
         <KpiCard
           label="Pending Approval"
@@ -152,6 +158,7 @@ export default function DashboardPage() {
           icon={<ReceiptIcon />}
           iconBg="bg-orange-50"
           iconColor="text-orange-600"
+          href="/dashboard/payroll/runs"
         />
         <KpiCard
           label="Open Invoices"
@@ -160,6 +167,7 @@ export default function DashboardPage() {
           icon={<TagIcon />}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
+          href="/dashboard/finance/accounts-receivable"
         />
       </div>
 
