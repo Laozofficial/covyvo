@@ -129,6 +129,41 @@ export type Collections = {
   byMethod: Record<string, string>
 }
 
+/* ── Statutory Tax Center ────────────────────────────────────────────── */
+
+export type TaxObligation = {
+  code: string
+  name: string
+  category: 'payroll' | 'sales' | 'purchases'
+  amount: string | null
+  basis: string
+  authority: string
+  manual?: boolean
+}
+
+export type TaxSummary = {
+  period: { month: string; start: string; end: string }
+  payroll: {
+    grossPayroll: string
+    paye: string
+    pensionEmployee: string
+    pensionEmployer: string
+    nhf: string
+    nsitf: string
+    itf: string
+    runCount: number
+  }
+  vat: { outputVat: string; inputVat: string; netVat: string; invoiceCount: number }
+  wht: { vendorSpend: string; poCount: number }
+  obligations: TaxObligation[]
+  totalPayable: string
+}
+
+export const taxCenterApi = {
+  summary: (q: { month?: string } = {}) =>
+    api<TaxSummary>(`/tax-center/summary${qs(q)}`, { auth: true }),
+}
+
 export const reportsApi = {
   generalLedger: (q: { accountId?: string; from?: string; to?: string } = {}) =>
     api<GeneralLedger>(`/reports/general-ledger${qs(q)}`, { auth: true }),
