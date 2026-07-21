@@ -164,6 +164,57 @@ export const taxCenterApi = {
     api<TaxSummary>(`/tax-center/summary${qs(q)}`, { auth: true }),
 }
 
+/* ── Bank Reconciliation ─────────────────────────────────────────────── */
+
+export type BankAccount = { id: string; code: string; name: string; accountType: string }
+
+export type RecWorkspaceLine = {
+  id: string
+  date: string
+  reference: string
+  description: string | null
+  movement: string
+  reconciled: boolean
+}
+
+export type RecWorkspace = {
+  account: { id: string; code: string; name: string }
+  bookBalance: string
+  lines: RecWorkspaceLine[]
+}
+
+export type BankReconciliation = {
+  id: string
+  reference: string
+  accountId: string
+  account?: { id: string; code: string; name: string }
+  statementDate: string
+  statementBalance: string
+  clearedBalance: string
+  bookBalance: string
+  difference: string
+  status: 'draft' | 'completed'
+  clearedLineIds: string[] | null
+  notes: string | null
+  createdAt: string
+}
+
+export const bankRecApi = {
+  accounts: () => api<BankAccount[]>('/bank-reconciliations/accounts', { auth: true }),
+  workspace: (accountId: string, statementDate?: string) =>
+    api<RecWorkspace>(`/bank-reconciliations/workspace${qs({ accountId, statementDate })}`, { auth: true }),
+  list: () => api<BankReconciliation[]>('/bank-reconciliations', { auth: true }),
+  get: (id: string) => api<BankReconciliation>(`/bank-reconciliations/${id}`, { auth: true }),
+  create: (body: {
+    accountId: string
+    statementDate: string
+    statementBalance: number
+    clearedLineIds: string[]
+    notes?: string
+    status?: 'draft' | 'completed'
+  }) => api<BankReconciliation>('/bank-reconciliations', { method: 'POST', body, auth: true }),
+}
+
 export const reportsApi = {
   generalLedger: (q: { accountId?: string; from?: string; to?: string } = {}) =>
     api<GeneralLedger>(`/reports/general-ledger${qs(q)}`, { auth: true }),

@@ -81,7 +81,7 @@ const MODULES: Module[] = [
       { kind: 'item', label: 'Trial Balance', href: '/dashboard/finance/trial-balance', icon: <BarChartIcon /> },
       { kind: 'item', label: 'Accounts Receivable', href: '/dashboard/finance/accounts-receivable', icon: <ReceiptIcon /> },
       { kind: 'item', label: 'Accounts Payable', href: '/dashboard/finance/accounts-payable', icon: <ReceiptIcon /> },
-      { kind: 'item', label: 'Bank Reconciliation', icon: <CreditCardIcon />, locked: true },
+      { kind: 'item', label: 'Bank Reconciliation', href: '/dashboard/finance/bank-reconciliation', icon: <CreditCardIcon /> },
       { kind: 'sub', label: 'Commercial' },
       { kind: 'item', label: 'Customers', href: '/dashboard/finance/customers', icon: <UsersIcon /> },
       { kind: 'item', label: 'Quotations', href: '/dashboard/finance/quotations', icon: <FileTextIcon /> },
