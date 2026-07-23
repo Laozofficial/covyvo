@@ -45,7 +45,7 @@ export default function AdvancesPage() {
   }
 
   useEffect(() => { load() }, [])
-  useEffect(() => { employeesApi.list({ limit: 300 }).then((r) => setEmployees(r.data ?? [])).catch(() => {}) }, [])
+  useEffect(() => { employeesApi.list({ limit: 300 }).then((r) => setEmployees(r.data ?? [])).catch((e) => console.error('Failed to load employees', e)) }, [])
 
   async function transition(a: Advance, to: AdvanceStatus) {
     setBusy(a.id)

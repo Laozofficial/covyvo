@@ -72,6 +72,15 @@ export function GoodsReceiptFormDrawer({
         setOrders(eligible)
       }
       if (b.status === 'fulfilled') setBranches(b.value.data ?? [])
+      // Surface lookup failures instead of rendering silently-empty dropdowns.
+      const failed = [
+        o.status === 'rejected' ? 'purchase orders' : null,
+        b.status === 'rejected' ? 'branches' : null,
+      ].filter(Boolean)
+      if (failed.length) {
+        console.error('Goods receipt lookups failed', { o, b })
+        setError(`Could not load ${failed.join(', ')}. Refresh and try again.`)
+      }
     })
   }, [open])
 

@@ -68,6 +68,16 @@ export function PurchaseOrderFormDrawer({ open, onClose, initial, onSaved }: Pro
       if (v.status === 'fulfilled') setVendors(v.value.data ?? [])
       if (b.status === 'fulfilled') setBranches(b.value.data ?? [])
       if (p.status === 'fulfilled') setProducts(p.value.data ?? [])
+      // Surface lookup failures instead of rendering silently-empty dropdowns.
+      const failed = [
+        v.status === 'rejected' ? 'vendors' : null,
+        b.status === 'rejected' ? 'branches' : null,
+        p.status === 'rejected' ? 'products' : null,
+      ].filter(Boolean)
+      if (failed.length) {
+        console.error('PO lookups failed', { v, b, p })
+        setError(`Could not load ${failed.join(', ')}. Refresh and try again.`)
+      }
     })
   }, [open])
 

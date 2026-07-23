@@ -43,7 +43,7 @@ export default function QuotationsPage() {
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [status])
-  useEffect(() => { customersApi.list({ limit: 200 }).then((r) => setCustomers(r.data ?? [])).catch(() => {}) }, [])
+  useEffect(() => { customersApi.list({ limit: 200 }).then((r) => setCustomers(r.data ?? [])).catch((e) => console.error('Failed to load customers', e)) }, [])
 
   async function transition(q: Quotation, next: QuotationStatus) {
     setBusy(q.id)

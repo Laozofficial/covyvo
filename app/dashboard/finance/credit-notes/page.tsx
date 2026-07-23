@@ -40,7 +40,7 @@ export default function CreditNotesPage() {
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [status])
-  useEffect(() => { customersApi.list({ limit: 200 }).then((r) => setCustomers(r.data ?? [])).catch(() => {}) }, [])
+  useEffect(() => { customersApi.list({ limit: 200 }).then((r) => setCustomers(r.data ?? [])).catch((e) => console.error('Failed to load customers', e)) }, [])
 
   async function transition(n: CreditNote, next: CreditNoteStatus) {
     setBusy(n.id)

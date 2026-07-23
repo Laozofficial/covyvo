@@ -60,7 +60,7 @@ export default function PurchaseOrdersPage() {
   }
 
   useEffect(() => {
-    vendorsApi.list({ limit: 200 }).then((r) => setVendors(r.data ?? [])).catch(() => {})
+    vendorsApi.list({ limit: 200 }).then((r) => setVendors(r.data ?? [])).catch((e) => console.error('Failed to load vendors', e))
   }, [])
   useEffect(() => {
     const t = setTimeout(load, 200)

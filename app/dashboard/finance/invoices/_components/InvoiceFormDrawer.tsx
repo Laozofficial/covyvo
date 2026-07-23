@@ -76,6 +76,17 @@ export function InvoiceFormDrawer({ open, onClose, initial, onSaved }: Props) {
       if (b.status === 'fulfilled') setBranches(b.value.data ?? [])
       if (d.status === 'fulfilled') setDepartments(d.value.data ?? [])
       if (p.status === 'fulfilled') setProducts(p.value.data ?? [])
+      // Surface lookup failures instead of rendering silently-empty dropdowns.
+      const failed = [
+        c.status === 'rejected' ? 'customers' : null,
+        b.status === 'rejected' ? 'branches' : null,
+        d.status === 'rejected' ? 'departments' : null,
+        p.status === 'rejected' ? 'products' : null,
+      ].filter(Boolean)
+      if (failed.length) {
+        console.error('Invoice lookups failed', { c, b, d, p })
+        setError(`Could not load ${failed.join(', ')}. Refresh and try again.`)
+      }
     })
   }, [open])
 

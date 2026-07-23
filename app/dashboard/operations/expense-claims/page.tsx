@@ -49,8 +49,8 @@ export default function ExpenseClaimsPage() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [status])
   useEffect(() => {
-    employeesApi.list({ limit: 300 }).then((r) => setEmployees(r.data ?? [])).catch(() => {})
-    advancesApi.list({ status: 'disbursed', limit: 100 }).then((r) => setAdvances(r.data ?? [])).catch(() => {})
+    employeesApi.list({ limit: 300 }).then((r) => setEmployees(r.data ?? [])).catch((e) => console.error('Failed to load employees', e))
+    advancesApi.list({ status: 'disbursed', limit: 100 }).then((r) => setAdvances(r.data ?? [])).catch((e) => console.error('Failed to load advances', e))
   }, [])
 
   async function transition(c: ExpenseClaim, to: ExpenseClaimStatus) {
