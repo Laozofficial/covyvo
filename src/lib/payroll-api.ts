@@ -306,8 +306,13 @@ export type Wallet = {
   id: string
   tenantId: string
   currency: string
+  /** Settled, spendable balance (payroll draws from this). */
   balance: string
+  /** Funded but still within the T+1 hold. */
+  pendingBalance: string
   status: string
+  holdHours?: number
+  nextSettlementAt?: string | null
 }
 
 export type WalletTransaction = {
@@ -317,6 +322,8 @@ export type WalletTransaction = {
   balanceAfter: string
   source: string
   status: string
+  settled?: boolean
+  availableAt?: string | null
   provider: string | null
   reference: string | null
   payrollRunId: string | null
