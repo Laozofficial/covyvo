@@ -12,19 +12,17 @@ import {
   walletApi,
 } from '../../../../src/lib/payroll-api'
 
-function useCountdown(iso?: string | null): string | null {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (!iso) return
-    const t = setInterval(() => setNow(Date.now()), 60_000)
-    return () => clearInterval(t)
-  }, [iso])
+/** Live "Xh Ym" until `iso`, given a ticking `now`. null when no target. */
+function remainingLabel(iso: string | null | undefined, now: number): string | null {
   if (!iso) return null
   const ms = new Date(iso).getTime() - now
   if (ms <= 0) return 'settling now'
-  const h = Math.floor(ms / 3_600_000)
+  const d = Math.floor(ms / 86_400_000)
+  const h = Math.floor((ms % 86_400_000) / 3_600_000)
   const m = Math.floor((ms % 3_600_000) / 60_000)
-  return `${h}h ${m}m`
+  if (d > 0) return `${d}d ${h}h`
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
 }
 
 export default function PayrollWalletPage() {
@@ -37,8 +35,14 @@ export default function PayrollWalletPage() {
   const [amount, setAmount] = useState('')
   const [funding, setFunding] = useState(false)
 
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(t)
+  }, [])
+
   const holdHours = wallet?.holdHours ?? 29
-  const countdown = useCountdown(wallet?.nextSettlementAt)
+  const countdown = remainingLabel(wallet?.nextSettlementAt, now)
   const pending = Number(wallet?.pendingBalance ?? 0)
 
   async function load() {
@@ -145,15 +149,24 @@ export default function PayrollWalletPage() {
                 </thead>
                 <tbody className="divide-y divide-ink-100">
                   {txns.map((t) => {
+                    const held = t.direction === 'credit' && t.status !== 'pending' && t.settled === false
                     const state =
                       t.status === 'pending' ? { label: 'Awaiting payment', chip: 'bg-ink-100 text-ink-600' }
-                      : t.direction === 'credit' && t.settled === false ? { label: 'Held', chip: 'bg-amber-50 text-amber-700' }
+                      : held ? { label: 'Held', chip: 'bg-amber-50 text-amber-700' }
                       : { label: 'Settled', chip: 'bg-emerald-50 text-emerald-700' }
+                    const rowCountdown = held ? remainingLabel(t.availableAt, now) : null
                     return (
                       <tr key={t.id} className="text-[12.5px]">
                         <td className="px-4 py-3 text-[11.5px] text-ink-600">{t.createdAt.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-ink-700">{t.notes ?? t.reference ?? '—'} <span className="text-[10px] text-ink-400 capitalize">· {t.source}</span></td>
-                        <td className="px-4 py-3"><span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded ${state.chip}`}>{state.label}</span></td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded ${state.chip}`}>{state.label}</span>
+                          {held && (
+                            <div className="mt-1 text-[10.5px] font-medium text-amber-600">
+                              {rowCountdown === 'settling now' ? 'settling now' : `available in ${rowCountdown ?? `~${holdHours}h`}`}
+                            </div>
+                          )}
+                        </td>
                         <td className={`px-4 py-3 text-right font-mono font-semibold ${t.direction === 'credit' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {t.direction === 'credit' ? '+' : '−'}{formatMoney(t.amount)}
                         </td>
