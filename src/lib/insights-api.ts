@@ -58,6 +58,10 @@ export type DashboardSummary = {
     pendingApprovals: number
     purchaseOrders: number
   }
+  cashflow: Array<{ date: string; inflow: number; outflow: number; net: number }>
+  expenseBreakdown: Array<{ label: string; value: number; color: string }>
+  alerts: Array<{ id: string; title: string; risk: 'High Risk' | 'Medium Risk' | 'Low Risk' }>
+  deadlines: Array<{ title: string; dueDate: string; daysLeft: number }>
   recentActivity: Array<{
     id: string
     action: string

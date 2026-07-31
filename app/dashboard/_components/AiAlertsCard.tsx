@@ -6,21 +6,15 @@ import { AlertTriangleIcon, ArrowRightIcon, SparklesIcon } from '../../../src/co
 type Risk = 'High Risk' | 'Medium Risk' | 'Low Risk'
 type Alert = { id: string; title: string; risk: Risk }
 
-const alerts: Alert[] = [
-  { id: '1', title: '3 vendor payments missing WHT deduction', risk: 'High Risk' },
-  { id: '2', title: 'PAYE Monthly Return is due in 7 days', risk: 'Medium Risk' },
-  { id: '3', title: '2 vendor duplicate payment risk detected', risk: 'High Risk' },
-]
-
 const riskStyles: Record<Risk, string> = {
   'High Risk': 'text-red-600',
   'Medium Risk': 'text-amber-600',
   'Low Risk': 'text-emerald-600',
 }
 
-export function AiAlertsCard() {
+export function AiAlertsCard({ alerts = [] }: { alerts?: Alert[] }) {
   const [closed, setClosed] = useState(false)
-  if (closed) return null
+  if (closed || alerts.length === 0) return null
 
   const critical = alerts.filter((a) => a.risk === 'High Risk').length
 

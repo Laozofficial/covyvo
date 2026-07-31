@@ -1,30 +1,31 @@
-import { ChevronDownIcon } from '../../../src/components/ui/icons'
 import { formatNaira } from '../../../src/lib/format'
 
 type Segment = { label: string; value: number; color: string }
 
-const segments: Segment[] = [
-  { label: 'Salaries & Wages', value: 6075000, color: '#a78bfa' },
-  { label: 'Purchases', value: 3510000, color: '#ec4899' },
-  { label: 'Rent and Utilities', value: 1620000, color: '#f59e0b' },
-  { label: 'Transportation & Logistics', value: 1080000, color: '#facc15' },
-  { label: 'Others Expenses', value: 1215000, color: '#10b981' },
-]
-
-export function TopExpensesCard() {
+export function TopExpensesCard({ segments = [] }: { segments?: Segment[] }) {
   const total = segments.reduce((s, x) => s + x.value, 0)
   const radius = 62
   const stroke = 22
   const circumference = 2 * Math.PI * radius
   let offset = 0
+  const top = [...segments].sort((a, b) => b.value - a.value)[0]
+
+  if (total <= 0) {
+    return (
+      <div className="rounded-2xl bg-white border border-ink-200 p-5">
+        <h3 className="text-[14px] font-bold text-ink-900 mb-4">Top Expenses</h3>
+        <div className="h-[170px] flex flex-col items-center justify-center text-center">
+          <p className="text-[12.5px] font-semibold text-ink-600">No expenses recorded yet</p>
+          <p className="text-[11.5px] text-ink-400 mt-1">Payroll, purchases and claims will break down here.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-2xl bg-white border border-ink-200 p-5 relative">
       <div className="flex items-start justify-between mb-4">
         <h3 className="text-[14px] font-bold text-ink-900">Top Expenses</h3>
-        <button className="h-7 rounded-lg border border-ink-200 px-2 flex items-center gap-1 text-[11.5px] font-semibold text-ink-700">
-          This Month <ChevronDownIcon size={12} className="text-ink-400" />
-        </button>
       </div>
 
       <div className="flex items-center gap-5">
@@ -52,7 +53,7 @@ export function TopExpensesCard() {
             })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <p className="text-[13px] font-bold text-ink-900">{formatNaira(total / 1000 * 1000, { compact: false })}</p>
+            <p className="text-[13px] font-bold text-ink-900">{formatNaira(total, { compact: true })}</p>
             <p className="text-[10px] text-ink-500 font-medium">Total expenses</p>
           </div>
         </div>
@@ -81,9 +82,11 @@ export function TopExpensesCard() {
         </div>
       </div>
 
-      <p className="mt-4 text-[11.5px] font-semibold text-brand-600">
-        ↗ Top expense: Salaries & Wages (45%)
-      </p>
+      {top && (
+        <p className="mt-4 text-[11.5px] font-semibold text-brand-600">
+          ↗ Top expense: {top.label} ({((top.value / total) * 100).toFixed(0)}%)
+        </p>
+      )}
     </div>
   )
 }

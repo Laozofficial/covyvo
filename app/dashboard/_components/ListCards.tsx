@@ -66,15 +66,7 @@ export function RecentActivitiesCard({ items = [] }: { items?: ActivityItem[] })
 
 /* ---------- Compliance Deadlines ---------- */
 
-type Deadline = { title: string; dueOn: string; daysLeft: number }
-
-const deadlines: Deadline[] = [
-  { title: 'PAYE Monthly Return', dueOn: 'Due May 26, 2026', daysLeft: 3 },
-  { title: 'VAT Return', dueOn: 'Due May 26, 2026', daysLeft: 7 },
-  { title: 'WHT Remittance', dueOn: 'Due May 26, 2026', daysLeft: 12 },
-  { title: 'PAYE Monthly Return', dueOn: 'Due May 26, 2026', daysLeft: 14 },
-  { title: 'Pension Remittance', dueOn: 'Due May 26, 2026', daysLeft: 15 },
-]
+type Deadline = { title: string; dueDate: string; daysLeft: number }
 
 function urgencyColor(daysLeft: number) {
   if (daysLeft <= 3) return 'text-red-600'
@@ -82,25 +74,34 @@ function urgencyColor(daysLeft: number) {
   return 'text-ink-500'
 }
 
-export function ComplianceDeadlinesCard() {
+function formatDue(iso: string) {
+  const d = new Date(iso)
+  return `Due ${d.toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })}`
+}
+
+export function ComplianceDeadlinesCard({ deadlines = [] }: { deadlines?: Deadline[] }) {
   return (
     <Card title="Compliance Alerts">
-      <ul className="divide-y divide-ink-100">
-        {deadlines.map((d, i) => (
-          <li key={i} className="flex items-start gap-3 py-2.5">
-            <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-amber-50 text-amber-600 [&>svg]:h-4 [&>svg]:w-4">
-              <AlertTriangleIcon />
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-semibold text-ink-900 truncate">{d.title}</p>
-              <p className="text-[10.5px] text-ink-500 font-medium">{d.dueOn}</p>
-            </div>
-            <span className={`text-[11px] font-bold ${urgencyColor(d.daysLeft)} shrink-0`}>
-              {d.daysLeft} days left
-            </span>
-          </li>
-        ))}
-      </ul>
+      {deadlines.length === 0 ? (
+        <p className="py-8 text-center text-[12px] text-ink-400">No upcoming statutory deadlines.</p>
+      ) : (
+        <ul className="divide-y divide-ink-100">
+          {deadlines.map((d, i) => (
+            <li key={i} className="flex items-start gap-3 py-2.5">
+              <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-amber-50 text-amber-600 [&>svg]:h-4 [&>svg]:w-4">
+                <AlertTriangleIcon />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold text-ink-900 truncate">{d.title}</p>
+                <p className="text-[10.5px] text-ink-500 font-medium">{formatDue(d.dueDate)}</p>
+              </div>
+              <span className={`text-[11px] font-bold ${urgencyColor(d.daysLeft)} shrink-0`}>
+                {d.daysLeft} day{d.daysLeft === 1 ? '' : 's'} left
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }
