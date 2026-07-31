@@ -7,6 +7,7 @@ import { Alert } from '../../../../src/components/ui/Alert'
 import { Button } from '../../../../src/components/ui/Button'
 import { FileTextIcon, SearchIcon } from '../../../../src/components/ui/icons'
 import { ApiError } from '../../../../src/lib/api'
+import { storage } from '../../../../src/lib/storage'
 import { formatMoney } from '../../../../src/lib/finance-api'
 import { useActiveBranch } from '../../../../src/lib/useActiveBranch'
 import { Invoice, InvoiceStatus, invoiceStatusMeta, invoicesApi } from '../../../../src/lib/invoices-api'
@@ -28,6 +29,7 @@ export default function InvoicesPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [ok, setOk] = useState<string | null>(null)
   const { branchId } = useActiveBranch()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<InvoiceStatus | ''>('')
@@ -96,6 +98,35 @@ export default function InvoicesPage() {
     }
   }
 
+  const [sendingId, setSendingId] = useState<string | null>(null)
+
+  async function sendInvoice(inv: Invoice) {
+    setSendingId(inv.id)
+    setError(null); setOk(null)
+    try {
+      const saved = await invoicesApi.send(inv.id)
+      handleSaved(saved)
+      setOk(`Invoice ${saved.reference} emailed to ${saved.customer?.email ?? 'the customer'}.`)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not send the invoice')
+    } finally {
+      setSendingId(null)
+    }
+  }
+
+  function copyLink(inv: Invoice) {
+    const slug = storage.getActiveTenant<{ slug?: string }>()?.slug
+    if (!slug || !inv.publicToken) {
+      setError('This invoice has no shareable link yet — send it first.')
+      return
+    }
+    const url = `${window.location.origin}/i/${slug}/${inv.publicToken}`
+    navigator.clipboard?.writeText(url).then(
+      () => setOk('Payment link copied to clipboard.'),
+      () => setError('Could not copy the link.'),
+    )
+  }
+
   return (
     <>
       <PageHeader
@@ -109,6 +140,7 @@ export default function InvoicesPage() {
       />
 
       {error && <div className="mb-4"><Alert variant="error">{error}</Alert></div>}
+      {ok && <div className="mb-4"><Alert variant="success">{ok}</Alert></div>}
 
       <div className="rounded-2xl bg-white border border-ink-200 p-3 mb-4 flex flex-col sm:flex-row items-stretch gap-2">
         <div className="relative flex-1">
@@ -186,8 +218,17 @@ export default function InvoicesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
-                      {inv.status === 'draft' && (
-                        <button onClick={() => transition(inv, 'sent')} className="text-[12px] font-semibold text-sky-600 hover:text-sky-700 mr-3">Send</button>
+                      {inv.status !== 'void' && inv.status !== 'paid' && (
+                        <button
+                          onClick={() => sendInvoice(inv)}
+                          disabled={sendingId === inv.id}
+                          className="text-[12px] font-semibold text-sky-600 hover:text-sky-700 mr-3 disabled:opacity-50"
+                        >
+                          {sendingId === inv.id ? 'Sending…' : inv.status === 'draft' ? 'Send' : 'Resend'}
+                        </button>
+                      )}
+                      {inv.publicToken && inv.status !== 'draft' && (
+                        <button onClick={() => copyLink(inv)} className="text-[12px] font-semibold text-ink-500 hover:text-ink-700 mr-3">Copy link</button>
                       )}
                       {(inv.status === 'sent' || inv.status === 'partially_paid' || inv.status === 'overdue') && (
                         <button onClick={() => setPayingInvoice(inv)} className="text-[12px] font-semibold text-emerald-600 hover:text-emerald-700 mr-3">Record payment</button>

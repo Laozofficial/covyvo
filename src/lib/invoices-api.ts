@@ -49,6 +49,7 @@ export type Invoice = {
   id: string
   tenantId: string
   reference: string
+  publicToken: string | null
   customerId: string
   customer?: Customer
   branchId: string | null
@@ -132,6 +133,45 @@ export const invoicesApi = {
 
   voidPayment: (id: string, paymentId: string) =>
     api<Invoice>(`/invoices/${id}/payments/${paymentId}`, { method: 'DELETE', auth: true }),
+
+  /** Mark sent + email the customer the hosted link. */
+  send: (id: string) =>
+    api<Invoice>(`/invoices/${id}/send`, { method: 'POST', auth: true }),
+}
+
+/* ── public (hosted invoice, no auth) ─────────────────────────────── */
+
+export type PublicInvoice = {
+  reference: string
+  status: InvoiceStatus
+  issueDate: string
+  dueDate: string
+  currency: string
+  subtotal: string
+  taxTotal: string
+  total: string
+  paidAmount: string
+  outstanding: string
+  notes: string | null
+  payable: boolean
+  seller: { name: string; address: string | null; taxId: string | null }
+  customer: { name: string | null; email: string | null }
+  lines: Array<{
+    description: string
+    quantity: string
+    unitPrice: string
+    lineTotal: string
+  }>
+}
+
+export const publicInvoicesApi = {
+  get: (tenantId: string, token: string) =>
+    api<PublicInvoice>(`/public/invoices/${encodeURIComponent(tenantId)}/${token}`),
+  pay: (tenantId: string, token: string) =>
+    api<{ authorizationUrl: string }>(
+      `/public/invoices/${encodeURIComponent(tenantId)}/${token}/pay`,
+      { method: 'POST' },
+    ),
 }
 
 /* ── presentation helpers ─────────────────────────────────────────── */
