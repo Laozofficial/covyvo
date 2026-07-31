@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Branch, branchesApi } from '../lib/hr-api'
 import {
   Notification,
@@ -9,6 +10,7 @@ import {
   timeAgo,
 } from '../lib/insights-api'
 import { storage } from '../lib/storage'
+import { NAV_SEARCH_INDEX, NavDestination } from './Sidebar'
 import {
   BellIcon,
   BranchIcon,
@@ -16,6 +18,19 @@ import {
   ChevronDownIcon,
   SearchIcon,
 } from './ui/icons'
+
+function scoreMatch(dest: NavDestination, q: string): number {
+  const label = dest.label.toLowerCase()
+  const group = dest.group.toLowerCase()
+  if (label === q) return 100
+  if (label.startsWith(q)) return 80
+  if (label.includes(q)) return 60
+  if (group.includes(q)) return 30
+  // subsequence (fuzzy) fallback so "invtx" → "Invoices"
+  let i = 0
+  for (const ch of label) if (ch === q[i]) i++
+  return i === q.length ? 10 : 0
+}
 
 export function TopBar() {
   const [branches, setBranches] = useState<Branch[]>([])
@@ -28,6 +43,63 @@ export function TopBar() {
 
   const branchRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
+
+  // Global command-palette search over every sidebar destination.
+  const router = useRouter()
+  const searchRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [highlight, setHighlight] = useState(0)
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return [] as NavDestination[]
+    return NAV_SEARCH_INDEX.map((d) => ({ d, s: scoreMatch(d, q) }))
+      .filter((r) => r.s > 0)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 8)
+      .map((r) => r.d)
+  }, [query])
+
+  function go(dest: NavDestination) {
+    router.push(dest.href)
+    setQuery('')
+    setSearchOpen(false)
+    searchInputRef.current?.blur()
+  }
+
+  function onSearchKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSearchOpen(true)
+      setHighlight((h) => Math.min(h + 1, results.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlight((h) => Math.max(h - 1, 0))
+    } else if (e.key === 'Enter' && results[highlight]) {
+      e.preventDefault()
+      go(results[highlight])
+    } else if (e.key === 'Escape') {
+      setSearchOpen(false)
+      searchInputRef.current?.blur()
+    }
+  }
+
+  // Cmd/Ctrl+K focuses the search from anywhere.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  useEffect(() => setHighlight(0), [query])
 
   // Load branches + restore the persisted active branch. Defaults to
   // "All branches" (no filter) unless a branch was previously chosen.
@@ -71,6 +143,7 @@ export function TopBar() {
     function onDown(e: MouseEvent) {
       if (branchRef.current && !branchRef.current.contains(e.target as Node)) setBranchOpen(false)
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false)
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false)
     }
     window.addEventListener('mousedown', onDown)
     return () => window.removeEventListener('mousedown', onDown)
@@ -100,14 +173,44 @@ export function TopBar() {
 
   return (
     <div className="flex items-center gap-4 px-6 py-3 bg-ink-50">
-      <div className="flex-1 max-w-xl">
+      <div ref={searchRef} className="flex-1 max-w-xl">
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" size={16} />
           <input
-            type="search"
-            placeholder="Search for anything..."
+            ref={searchInputRef}
+            type="text"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setSearchOpen(true) }}
+            onFocus={() => setSearchOpen(true)}
+            onKeyDown={onSearchKey}
+            placeholder="Search pages… (⌘K)"
             className="w-full h-10 rounded-xl border border-ink-200 bg-white pl-9 pr-3 text-[12.5px] font-medium text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500"
           />
+
+          {searchOpen && query.trim() && (
+            <div className="absolute left-0 right-0 mt-2 rounded-xl border border-ink-200 bg-white shadow-xl z-50 overflow-hidden">
+              {results.length === 0 ? (
+                <p className="px-4 py-6 text-center text-[12px] text-ink-400">No pages match &ldquo;{query}&rdquo;.</p>
+              ) : (
+                <div className="py-1 max-h-[360px] overflow-y-auto">
+                  {results.map((r, i) => (
+                    <button
+                      key={r.href}
+                      onMouseEnter={() => setHighlight(i)}
+                      onClick={() => go(r)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-left ${i === highlight ? 'bg-brand-50' : 'hover:bg-ink-50'}`}
+                    >
+                      <SearchIcon size={13} className="text-ink-300 shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[12.5px] font-semibold text-ink-900 truncate">{r.label}</span>
+                      </span>
+                      <span className="text-[10.5px] font-medium text-ink-400 shrink-0">{r.group}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

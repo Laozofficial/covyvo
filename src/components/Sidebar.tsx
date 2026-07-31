@@ -85,7 +85,7 @@ const MODULES: Module[] = [
       { kind: 'sub', label: 'Commercial' },
       { kind: 'item', label: 'Customers', href: '/dashboard/finance/customers', icon: <UsersIcon /> },
       { kind: 'item', label: 'Quotations', href: '/dashboard/finance/quotations', icon: <FileTextIcon /> },
-      { kind: 'item', label: 'Customer Invoices', href: '/dashboard/finance/invoices', icon: <ReceiptIcon /> },
+      { kind: 'item', label: 'Invoices', href: '/dashboard/finance/invoices', icon: <ReceiptIcon /> },
       { kind: 'item', label: 'Credit Notes', href: '/dashboard/finance/credit-notes', icon: <FileTextIcon /> },
       { kind: 'item', label: 'Collections', href: '/dashboard/finance/collections', icon: <BanknoteIcon /> },
       { kind: 'sub', label: 'Fixed Assets' },
@@ -203,6 +203,21 @@ const MODULES: Module[] = [
     ],
   },
 ]
+
+/**
+ * Flat, navigable index of every real (unlocked, linked) sidebar destination —
+ * powers the global header search / command palette. Single source of truth:
+ * derived from MODULES so it never drifts from the sidebar.
+ */
+export type NavDestination = { label: string; href: string; group: string }
+export const NAV_SEARCH_INDEX: NavDestination[] = MODULES.flatMap((m) =>
+  m.entries
+    .filter(
+      (e): e is { kind: 'item' } & Item =>
+        e.kind === 'item' && !!e.href && !e.locked,
+    )
+    .map((e) => ({ label: e.label, href: e.href as string, group: m.title })),
+)
 
 const STORAGE_KEY = 'covyvo-sidebar-open'
 
