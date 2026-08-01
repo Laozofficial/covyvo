@@ -100,6 +100,19 @@ export default function InvoicesPage() {
 
   const [sendingId, setSendingId] = useState<string | null>(null)
 
+  // Open the drawer with the list row immediately, then swap in full detail
+  // (the list query omits payments; the detail endpoint includes them).
+  async function openInvoice(inv: Invoice) {
+    setEditing(inv)
+    setDrawerOpen(true)
+    try {
+      const full = await invoicesApi.get(inv.id)
+      setEditing(full)
+    } catch {
+      /* keep the list row — the drawer guards against missing payments */
+    }
+  }
+
   async function sendInvoice(inv: Invoice) {
     setSendingId(inv.id)
     setError(null); setOk(null)
@@ -234,7 +247,7 @@ export default function InvoicesPage() {
                         <button onClick={() => setPayingInvoice(inv)} className="text-[12px] font-semibold text-emerald-600 hover:text-emerald-700 mr-3">Record payment</button>
                       )}
                       <button
-                        onClick={() => { setEditing(inv); setDrawerOpen(true) }}
+                        onClick={() => openInvoice(inv)}
                         className="text-[12px] font-semibold text-brand-600 hover:text-brand-700"
                       >
                         View

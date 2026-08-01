@@ -101,13 +101,14 @@ export function InvoiceFormDrawer({ open, onClose, initial, onSaved }: Props) {
       setPaymentTermsDays(initial.paymentTermsDays != null ? String(initial.paymentTermsDays) : '')
       setCurrency(initial.currency)
       setNotes(initial.notes ?? '')
-      setLines(initial.lines.map((l) => ({
+      const mapped = (initial.lines ?? []).map((l) => ({
         productId: l.productId ?? '',
         description: l.description,
         quantity: String(Number(l.quantity)),
         unitPrice: String(Number(l.unitPrice)),
         taxRate: String(Number(l.taxRate)),
-      })))
+      }))
+      setLines(mapped.length ? mapped : [empty()])
     } else {
       setCustomerId(''); setBranchId(''); setDepartmentId('')
       setIssueDate(new Date().toISOString().slice(0, 10))
@@ -412,13 +413,13 @@ export function InvoiceFormDrawer({ open, onClose, initial, onSaved }: Props) {
             hint="e.g. Bank details, PO reference, delivery instructions"
           />
 
-          {editing && initial!.payments.length > 0 && (
+          {editing && (initial!.payments?.length ?? 0) > 0 && (
             <div className="rounded-xl border border-ink-200 overflow-hidden">
               <div className="px-3 py-2 bg-ink-50/60 text-[10.5px] font-bold uppercase tracking-wider text-ink-500">
                 Payments · {formatMoney(initial!.paidAmount, currency)} received
               </div>
               <ul className="divide-y divide-ink-100">
-                {initial!.payments.map((p) => (
+                {(initial!.payments ?? []).map((p) => (
                   <li key={p.id} className={`px-3 py-2 flex items-center justify-between text-[12px] ${p.voidedAt ? 'opacity-50 line-through' : ''}`}>
                     <div>
                       <p className="font-semibold text-ink-900">{formatMoney(p.amount, currency)}</p>
