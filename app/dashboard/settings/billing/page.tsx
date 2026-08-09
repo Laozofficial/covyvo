@@ -26,6 +26,7 @@ export default function BillingPage() {
   const [addonCatalog, setAddonCatalog] = useState<Addon[]>([])
   const [addonQty, setAddonQty] = useState<Record<string, number>>({})
   const [packId, setPackId] = useState('')
+  const [selectedPlanId, setSelectedPlanId] = useState('')
   const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +54,8 @@ export default function BillingPage() {
       for (const it of (s.subscription?.addOns ?? [])) q[it.code] = it.quantity
       setAddonQty(q)
       if (pk.length) setPackId(pk[0].id)
+      const firstPaid = pl.find((x) => x.code !== 'free')
+      if (firstPaid) setSelectedPlanId((cur) => cur || firstPaid.id)
       if (s.subscription) setCycle(s.subscription.cycle)
       setError(null)
     } catch (err) {
@@ -85,13 +88,26 @@ export default function BillingPage() {
     setChanging(false)
   }
 
-  async function buyNow(planId: string) {
+  const selectedAddons = () =>
+    Object.entries(addonQty).filter(([, q]) => q > 0).map(([code, quantity]) => ({ code, quantity }))
+
+  // Buy or trial the selected plan, persisting chosen add-ons first so they
+  // fold into the invoice the backend raises.
+  async function purchase(planId: string, mode: 'buy' | 'trial') {
     setBusy(true); setError(null); setOk(null)
     try {
-      const { authorizationUrl } = await billingApi.subscribeNow(planId, cycle)
-      window.location.href = authorizationUrl
+      await billingApi.setAddons(selectedAddons())
+      if (mode === 'buy') {
+        const { authorizationUrl } = await billingApi.subscribeNow(planId, cycle)
+        window.location.href = authorizationUrl
+        return
+      }
+      await billingApi.trial(planId, cycle)
+      setOk('Your 7-day free trial has started 🎉')
+      await load()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not start payment')
+      setError(err instanceof ApiError ? err.message : 'Could not complete that')
+    } finally {
       setBusy(false)
     }
   }
@@ -122,6 +138,17 @@ export default function BillingPage() {
   const meta = sub ? statusMeta(sub.status) : null
   const planPrice = (p: Plan) => cycle === 'annual' ? (p.annualPrice ?? p.monthlyPrice) : p.monthlyPrice
 
+  // ── order summary maths (7.5% VAT, add-ons billed 12× on annual) ──
+  const VAT_RATE = 0.075
+  const naira = (n: number) => '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId)
+  const addonsMonthly = addonCatalog.reduce((sum, a) => sum + (addonQty[a.code] ?? 0) * Number(a.monthlyPrice), 0)
+  const planAmt = selectedPlan ? Number(planPrice(selectedPlan)) : 0
+  const addonsAmt = cycle === 'annual' ? addonsMonthly * 12 : addonsMonthly
+  const subtotal = planAmt + addonsAmt
+  const vat = subtotal * VAT_RATE
+  const total = subtotal + vat
+
   return (
     <>
       <PageHeader title="Subscription & Billing" description="Manage your plan, usage credits, and invoices." />
@@ -133,31 +160,107 @@ export default function BillingPage() {
         <div className="rounded-2xl border border-ink-200 bg-white p-10 flex items-center justify-center">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink-200 border-t-brand-600" />
         </div>
-      ) : (!sub || changing || onFree) ? (
+      ) : onFree ? (
         <>
-          {onFree && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3">
-              <div>
-                <p className="text-[12.5px] font-bold text-brand-800">You&apos;re on the Free plan</p>
-                <p className="text-[11.5px] text-brand-700/80">Start a 7-day free trial or buy a plan now to unlock more branches, users, employees and AI ops.</p>
-              </div>
-              <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white">Free</span>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3">
+            <div>
+              <p className="text-[12.5px] font-bold text-brand-800">You&apos;re on the Free plan</p>
+              <p className="text-[11.5px] text-brand-700/80">Pick a plan (and any add-ons) below. Start a 7-day free trial, or buy now to activate immediately.</p>
             </div>
-          )}
-          <PlanChooser
-            plans={plans}
-            cycle={cycle}
-            setCycle={setCycle}
-            currentPlanId={sub?.planId}
-            trialMode={onFree}
-            onSelect={selectPlan}
-            onBuyNow={onFree ? buyNow : undefined}
-            busy={busy}
-            heading={onFree ? 'Choose a plan' : sub ? 'Change your plan' : 'Choose a plan'}
-            subtitle={onFree ? 'Try any plan free for 7 days, or buy now to activate it immediately.' : sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
-            onCancel={changing && !onFree ? () => setChanging(false) : undefined}
-          />
-          {onFree && invoices.length > 0 && (
+            <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white">Free</span>
+          </div>
+
+          <div className="mb-4 flex items-center justify-end">
+            <div className="inline-flex rounded-lg border border-ink-200 bg-white p-0.5 text-[12px] font-semibold">
+              <button onClick={() => setCycle('monthly')} className={`rounded-md px-3 py-1.5 ${cycle === 'monthly' ? 'bg-brand-600 text-white' : 'text-ink-600'}`}>Monthly</button>
+              <button onClick={() => setCycle('annual')} className={`rounded-md px-3 py-1.5 ${cycle === 'annual' ? 'bg-brand-600 text-white' : 'text-ink-600'}`}>Annual <span className="opacity-70">(save)</span></button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {/* Plan grid (selectable) */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-2">
+              {plans.filter((p) => p.code !== 'free').map((p) => {
+                const price = cycle === 'annual' ? (p.annualPrice ?? p.monthlyPrice) : p.monthlyPrice
+                const isSel = p.id === selectedPlanId
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPlanId(p.id)}
+                    className={`flex flex-col rounded-2xl border p-5 text-left transition ${isSel ? 'border-brand-500 ring-2 ring-brand-500 bg-white' : 'border-ink-200 bg-white hover:border-brand-300'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-[15px] font-bold text-ink-900">{p.name}</p>
+                      <span className={`h-4 w-4 rounded-full border ${isSel ? 'border-brand-600 bg-brand-600' : 'border-ink-300'}`} />
+                    </div>
+                    <p className="mt-1 text-[24px] font-bold text-ink-900">{naira(Number(price))}<span className="text-[12px] font-medium text-ink-400"> /{cycle === 'annual' ? 'yr' : 'mo'}</span></p>
+                    {p.description && <p className="mt-1 text-[11.5px] text-ink-500 line-clamp-2">{p.description}</p>}
+                    <ul className="mt-3 space-y-1 text-[11.5px] text-ink-600">
+                      <li>{p.maxBranches ?? '∞'} branches · {p.maxUsers ?? '∞'} users</li>
+                      <li>{p.maxEmployees ?? '∞'} employees</li>
+                      <li>{p.aiOpsMonthly ?? 'Custom'} AI ops / month</li>
+                    </ul>
+                  </button>
+                )
+              })}
+
+              {/* Add-ons */}
+              {addonCatalog.length > 0 && (
+                <div className="sm:col-span-2 rounded-2xl border border-ink-200 bg-white p-4">
+                  <h2 className="mb-2 text-[13px] font-bold text-ink-900">Add-ons <span className="font-normal text-ink-400">(optional)</span></h2>
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    {addonCatalog.map((a) => (
+                      <div key={a.id} className="flex items-center gap-2 rounded-lg border border-ink-200 px-3 py-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[12px] font-semibold text-ink-800">{a.name}</p>
+                          <p className="text-[11px] text-ink-400">{naira(Number(a.monthlyPrice))}/mo{a.unitQty > 1 ? ` · +${a.unitQty} each` : ''}</p>
+                        </div>
+                        {a.type === 'feature' ? (
+                          <input type="checkbox" checked={(addonQty[a.code] ?? 0) > 0} onChange={(e) => setAddonQty({ ...addonQty, [a.code]: e.target.checked ? 1 : 0 })} />
+                        ) : (
+                          <input type="number" min={0} value={addonQty[a.code] ?? 0} onChange={(e) => setAddonQty({ ...addonQty, [a.code]: Math.max(0, parseInt(e.target.value || '0', 10)) })} className="h-8 w-16 rounded-lg border border-ink-200 px-2 text-right text-[12px] focus:border-brand-500 focus:outline-none" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Order summary */}
+            <div className="lg:sticky lg:top-4 h-fit rounded-2xl border border-ink-200 bg-white p-5">
+              <h2 className="text-[13px] font-bold text-ink-900">Order summary</h2>
+              <div className="mt-3 space-y-2 text-[12.5px]">
+                <Row label={selectedPlan ? `${selectedPlan.name} plan (${cycle})` : 'Plan'} value={naira(planAmt)} />
+                {addonsAmt > 0 && <Row label={`Add-ons${cycle === 'annual' ? ' ×12' : ''}`} value={naira(addonsAmt)} />}
+                <div className="border-t border-ink-100 pt-2"><Row label="Subtotal" value={naira(subtotal)} /></div>
+                <Row label="VAT (7.5%)" value={naira(vat)} muted />
+                <div className="border-t border-ink-100 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-bold text-ink-900">Total{cycle === 'annual' ? ' /yr' : ' /mo'}</span>
+                    <span className="text-[16px] font-bold text-ink-900">{naira(total)}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                disabled={busy || !selectedPlan}
+                onClick={() => selectedPlan && purchase(selectedPlan.id, 'buy')}
+                className="mt-4 w-full rounded-lg bg-brand-600 py-2.5 text-[12.5px] font-bold text-white hover:bg-brand-700 disabled:opacity-60"
+              >
+                Buy now — pay {naira(total)}
+              </button>
+              <button
+                disabled={busy || !selectedPlan}
+                onClick={() => selectedPlan && purchase(selectedPlan.id, 'trial')}
+                className="mt-2 w-full rounded-lg border border-brand-600 py-2.5 text-[12.5px] font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-60"
+              >
+                Start 7-day free trial
+              </button>
+              <p className="mt-2 text-center text-[10.5px] text-ink-400">Trial: nothing charged for 7 days. VAT included in totals.</p>
+            </div>
+          </div>
+
+          {invoices.length > 0 && (
             <div className="mt-6">
               <h2 className="mb-2 text-[13px] font-bold text-ink-900">Invoices</h2>
               <div className="rounded-2xl border border-ink-200 bg-white overflow-hidden">
@@ -181,6 +284,18 @@ export default function BillingPage() {
             </div>
           )}
         </>
+      ) : (!sub || changing) ? (
+        <PlanChooser
+          plans={plans}
+          cycle={cycle}
+          setCycle={setCycle}
+          currentPlanId={sub?.planId}
+          onSelect={selectPlan}
+          busy={busy}
+          heading={sub ? 'Change your plan' : 'Choose a plan'}
+          subtitle={sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
+          onCancel={changing ? () => setChanging(false) : undefined}
+        />
       ) : (
         <>
           {/* Plan card */}
@@ -368,6 +483,15 @@ function PlanChooser({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className={muted ? 'text-ink-500' : 'text-ink-700'}>{label}</span>
+      <span className={`font-mono ${muted ? 'text-ink-500' : 'font-semibold text-ink-900'}`}>{value}</span>
     </div>
   )
 }
