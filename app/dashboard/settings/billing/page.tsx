@@ -71,14 +71,18 @@ export default function BillingPage() {
     finally { setBusy(false) }
   }
 
+  const onFree = sub?.plan?.code === 'free' && sub.status === 'active'
+
   async function selectPlan(planId: string) {
+    const target = plans.find((p) => p.id === planId)
     if (!sub) {
-      await run(() => billingApi.subscribe(planId, cycle), 'Subscription started — enjoy your 7-day trial.')
-      setChanging(false)
+      await run(() => billingApi.subscribe(planId, cycle), 'Subscription started.')
+    } else if (target?.code !== 'free' && onFree) {
+      await run(() => billingApi.trial(planId, cycle), 'Your 7-day free trial has started 🎉')
     } else {
       await run(() => billingApi.changePlan(planId, cycle), 'Plan updated. Any proration appears as an invoice below.')
-      setChanging(false)
     }
+    setChanging(false)
   }
 
   async function pay(inv: BillingInvoice) {
@@ -124,11 +128,12 @@ export default function BillingPage() {
           cycle={cycle}
           setCycle={setCycle}
           currentPlanId={sub?.planId}
+          trialMode={onFree}
           onSelect={selectPlan}
           busy={busy}
-          heading={sub ? 'Change your plan' : 'Choose a plan'}
-          subtitle={sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
-          onCancel={sub ? () => setChanging(false) : undefined}
+          heading={onFree ? 'Start your free trial' : sub ? 'Change your plan' : 'Choose a plan'}
+          subtitle={onFree ? 'Pick a plan to try free for 7 days — no charge until it ends.' : sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
+          onCancel={() => setChanging(false)}
         />
       ) : (
         <>
@@ -158,12 +163,14 @@ export default function BillingPage() {
               </div>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => setChanging(true)} className="rounded-lg bg-white/15 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-white/25">Change plan</button>
-              {sub.cancelAtPeriodEnd ? (
+              <button onClick={() => setChanging(true)} className="rounded-lg bg-white/20 px-3 py-2 text-[12.5px] font-bold text-white hover:bg-white/30">
+                {onFree ? 'Start free trial' : 'Change plan'}
+              </button>
+              {!onFree && (sub.cancelAtPeriodEnd ? (
                 <button disabled={busy} onClick={() => run(() => billingApi.resume(), 'Subscription resumed.')} className="rounded-lg bg-white/15 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-white/25">Resume</button>
               ) : (
                 <button disabled={busy} onClick={() => run(() => billingApi.cancel(), 'Will cancel at period end.')} className="rounded-lg bg-white/10 px-3 py-2 text-[12.5px] font-semibold text-white/90 hover:bg-white/20">Cancel plan</button>
-              )}
+              ))}
             </div>
           </div>
 
@@ -242,12 +249,13 @@ export default function BillingPage() {
 }
 
 function PlanChooser({
-  plans, cycle, setCycle, currentPlanId, onSelect, busy, heading, subtitle, onCancel,
+  plans, cycle, setCycle, currentPlanId, trialMode, onSelect, busy, heading, subtitle, onCancel,
 }: {
   plans: Plan[]
   cycle: 'monthly' | 'annual'
   setCycle: (c: 'monthly' | 'annual') => void
   currentPlanId?: string
+  trialMode?: boolean
   onSelect: (planId: string) => void
   busy: boolean
   heading: string
@@ -288,7 +296,7 @@ function PlanChooser({
                 onClick={() => onSelect(p.id)}
                 className={`mt-4 rounded-lg py-2 text-[12.5px] font-semibold ${isCurrent ? 'cursor-default bg-ink-100 text-ink-500' : 'bg-brand-600 text-white hover:bg-brand-700'} disabled:opacity-60`}
               >
-                {isCurrent ? 'Current plan' : currentPlanId ? 'Switch to this plan' : 'Start 7-day trial'}
+                {isCurrent ? 'Current plan' : (trialMode || !currentPlanId) && p.code !== 'free' ? 'Start 7-day trial' : p.code === 'free' ? 'Switch to Free' : 'Switch to this plan'}
               </button>
             </div>
           )

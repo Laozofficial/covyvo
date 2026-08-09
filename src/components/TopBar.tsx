@@ -43,7 +43,7 @@ export function TopBar() {
   const [bellOpen, setBellOpen] = useState(false)
 
   // Billing status pill (auto-starts the trial on first fetch).
-  const [billing, setBilling] = useState<{ status: string; daysLeft: number | null } | null>(null)
+  const [billing, setBilling] = useState<{ status: string; daysLeft: number | null; planCode?: string } | null>(null)
   useEffect(() => {
     billingApi
       .subscription()
@@ -52,7 +52,7 @@ export function TopBar() {
         if (!s) return setBilling(null)
         const end = s.status === 'trialing' ? s.trialEndsAt : s.currentPeriodEnd
         const daysLeft = end ? Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86_400_000)) : null
-        setBilling({ status: s.status, daysLeft })
+        setBilling({ status: s.status, daysLeft, planCode: s.plan?.code })
       })
       .catch(() => setBilling(null))
   }, [])
@@ -232,24 +232,31 @@ export function TopBar() {
 
       <div className="ml-auto flex items-center gap-2">
         {/* Billing / trial status pill */}
-        {billing && ['trialing', 'past_due', 'suspended'].includes(billing.status) && (
-          <Link
-            href="/dashboard/settings/billing"
-            className={`hidden sm:inline-flex items-center gap-1.5 h-10 rounded-xl px-3 text-[12px] font-bold transition-colors ${
-              billing.status === 'trialing'
-                ? 'bg-violet-50 text-violet-700 hover:bg-violet-100'
-                : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-            }`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${billing.status === 'trialing' ? 'bg-violet-500' : 'bg-rose-500'}`} />
-            {billing.status === 'trialing'
-              ? `Free trial${billing.daysLeft != null ? ` · ${billing.daysLeft}d left` : ''}`
-              : billing.status === 'past_due'
-                ? 'Payment due'
-                : 'Suspended'}
-            <span className="opacity-70">· {billing.status === 'trialing' ? 'Subscribe' : 'Fix'}</span>
-          </Link>
-        )}
+        {billing && (() => {
+          const isTrial = billing.status === 'trialing'
+          const isFree = billing.status === 'active' && billing.planCode === 'free'
+          const isBad = billing.status === 'past_due' || billing.status === 'suspended'
+          if (!isTrial && !isFree && !isBad) return null
+          const tone = isTrial
+            ? 'bg-violet-50 text-violet-700 hover:bg-violet-100'
+            : isFree
+              ? 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+              : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+          const dot = isTrial ? 'bg-violet-500' : isFree ? 'bg-brand-500' : 'bg-rose-500'
+          const label = isTrial
+            ? `Free trial${billing.daysLeft != null ? ` · ${billing.daysLeft}d left` : ''}`
+            : isFree
+              ? 'Free plan'
+              : billing.status === 'past_due' ? 'Payment due' : 'Suspended'
+          const cta = isBad ? 'Fix' : 'Upgrade'
+          return (
+            <Link href="/dashboard/settings/billing" className={`hidden sm:inline-flex items-center gap-1.5 h-10 rounded-xl px-3 text-[12px] font-bold transition-colors ${tone}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+              {label}
+              <span className="opacity-70">· {cta}</span>
+            </Link>
+          )
+        })()}
 
         {/* Notifications */}
         <div ref={bellRef} className="relative">
