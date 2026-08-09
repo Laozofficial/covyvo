@@ -133,20 +133,54 @@ export default function BillingPage() {
         <div className="rounded-2xl border border-ink-200 bg-white p-10 flex items-center justify-center">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink-200 border-t-brand-600" />
         </div>
-      ) : (!sub || changing) ? (
-        <PlanChooser
-          plans={plans}
-          cycle={cycle}
-          setCycle={setCycle}
-          currentPlanId={sub?.planId}
-          trialMode={onFree}
-          onSelect={selectPlan}
-          onBuyNow={onFree ? buyNow : undefined}
-          busy={busy}
-          heading={onFree ? 'Upgrade your plan' : sub ? 'Change your plan' : 'Choose a plan'}
-          subtitle={onFree ? 'Start a 7-day free trial, or buy a plan now to activate it immediately.' : sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
-          onCancel={() => setChanging(false)}
-        />
+      ) : (!sub || changing || onFree) ? (
+        <>
+          {onFree && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3">
+              <div>
+                <p className="text-[12.5px] font-bold text-brand-800">You&apos;re on the Free plan</p>
+                <p className="text-[11.5px] text-brand-700/80">Start a 7-day free trial or buy a plan now to unlock more branches, users, employees and AI ops.</p>
+              </div>
+              <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white">Free</span>
+            </div>
+          )}
+          <PlanChooser
+            plans={plans}
+            cycle={cycle}
+            setCycle={setCycle}
+            currentPlanId={sub?.planId}
+            trialMode={onFree}
+            onSelect={selectPlan}
+            onBuyNow={onFree ? buyNow : undefined}
+            busy={busy}
+            heading={onFree ? 'Choose a plan' : sub ? 'Change your plan' : 'Choose a plan'}
+            subtitle={onFree ? 'Try any plan free for 7 days, or buy now to activate it immediately.' : sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
+            onCancel={changing && !onFree ? () => setChanging(false) : undefined}
+          />
+          {onFree && invoices.length > 0 && (
+            <div className="mt-6">
+              <h2 className="mb-2 text-[13px] font-bold text-ink-900">Invoices</h2>
+              <div className="rounded-2xl border border-ink-200 bg-white overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-ink-50/60 text-[10.5px] font-bold uppercase tracking-wider text-ink-500">
+                    <tr><th className="px-4 py-3">Description</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Action</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-ink-100">
+                    {invoices.map((inv) => (
+                      <tr key={inv.id} className="text-[12.5px]">
+                        <td className="px-4 py-3 text-ink-800">{inv.description}</td>
+                        <td className="px-4 py-3 text-[11.5px] text-ink-500">{inv.createdAt?.slice(0, 10)}</td>
+                        <td className="px-4 py-3 text-right font-mono font-semibold text-ink-900">{formatMoney(inv.total, inv.currency)}</td>
+                        <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : inv.status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>{inv.status}</span></td>
+                        <td className="px-4 py-3 text-right">{inv.status !== 'paid' && <button onClick={() => pay(inv)} disabled={busy} className="text-[12px] font-semibold text-brand-600 hover:text-brand-700 disabled:opacity-50">Pay now</button>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <>
           {/* Plan card */}
