@@ -10,6 +10,7 @@ import {
   timeAgo,
 } from '../lib/insights-api'
 import { storage } from '../lib/storage'
+import { billingApi } from '../lib/billing-api'
 import { NAV_SEARCH_INDEX, NavDestination } from './Sidebar'
 import {
   BellIcon,
@@ -40,6 +41,21 @@ export function TopBar() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unread, setUnread] = useState(0)
   const [bellOpen, setBellOpen] = useState(false)
+
+  // Billing status pill (auto-starts the trial on first fetch).
+  const [billing, setBilling] = useState<{ status: string; daysLeft: number | null } | null>(null)
+  useEffect(() => {
+    billingApi
+      .subscription()
+      .then((r) => {
+        const s = r.subscription
+        if (!s) return setBilling(null)
+        const end = s.status === 'trialing' ? s.trialEndsAt : s.currentPeriodEnd
+        const daysLeft = end ? Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86_400_000)) : null
+        setBilling({ status: s.status, daysLeft })
+      })
+      .catch(() => setBilling(null))
+  }, [])
 
   const branchRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
@@ -215,6 +231,26 @@ export function TopBar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Billing / trial status pill */}
+        {billing && ['trialing', 'past_due', 'suspended'].includes(billing.status) && (
+          <Link
+            href="/dashboard/settings/billing"
+            className={`hidden sm:inline-flex items-center gap-1.5 h-10 rounded-xl px-3 text-[12px] font-bold transition-colors ${
+              billing.status === 'trialing'
+                ? 'bg-violet-50 text-violet-700 hover:bg-violet-100'
+                : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${billing.status === 'trialing' ? 'bg-violet-500' : 'bg-rose-500'}`} />
+            {billing.status === 'trialing'
+              ? `Free trial${billing.daysLeft != null ? ` · ${billing.daysLeft}d left` : ''}`
+              : billing.status === 'past_due'
+                ? 'Payment due'
+                : 'Suspended'}
+            <span className="opacity-70">· {billing.status === 'trialing' ? 'Subscribe' : 'Fix'}</span>
+          </Link>
+        )}
+
         {/* Notifications */}
         <div ref={bellRef} className="relative">
           <button

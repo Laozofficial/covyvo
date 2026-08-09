@@ -67,6 +67,7 @@ const MODULES: Module[] = [
     icon: <HomeIcon />,
     entries: [
       { kind: 'item', label: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
+      { kind: 'item', label: 'Subscription & Billing', href: '/dashboard/settings/billing', icon: <CreditCardIcon /> },
     ],
   },
   {
@@ -198,7 +199,6 @@ const MODULES: Module[] = [
       { kind: 'item', label: 'Departments', href: '/dashboard/administration/departments', icon: <BuildingIcon /> },
       { kind: 'sub', label: 'Platform' },
       { kind: 'item', label: 'Integrations', icon: <SettingsIcon />, locked: true },
-      { kind: 'item', label: 'Subscription & Billing', href: '/dashboard/settings/billing', icon: <CreditCardIcon /> },
       { kind: 'item', label: 'Audit Logs', icon: <FileTextIcon />, locked: true },
     ],
   },
