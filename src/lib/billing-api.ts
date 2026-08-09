@@ -64,6 +64,35 @@ export const billingApi = {
     api<{ authorizationUrl: string }>(`/billing/invoices/${invoiceId}/checkout`, { method: 'POST', auth: true }),
   buyCredits: (packId: string) =>
     api<BillingInvoice>('/billing/credits/buy', { method: 'POST', body: { packId }, auth: true }),
+
+  addons: () => api<Addon[]>('/billing/addons', { auth: true }),
+  limits: () => api<EffectiveLimits>('/billing/limits', { auth: true }),
+  subscribe: (planId: string, cycle: 'monthly' | 'annual') =>
+    api('/billing/subscribe', { method: 'POST', body: { planId, cycle }, auth: true }),
+  changePlan: (planId: string, cycle: 'monthly' | 'annual') =>
+    api('/billing/change-plan', { method: 'POST', body: { planId, cycle }, auth: true }),
+  cancel: () => api('/billing/cancel', { method: 'POST', auth: true }),
+  resume: () => api('/billing/resume', { method: 'POST', auth: true }),
+  setAddons: (addOns: { code: string; quantity: number }[]) =>
+    api('/billing/addons', { method: 'POST', body: { addOns }, auth: true }),
+}
+
+export type Addon = {
+  id: string
+  code: string
+  name: string
+  type: 'feature' | 'branch' | 'user' | 'employee'
+  monthlyPrice: string
+  unitQty: number
+  isActive: boolean
+}
+
+export type EffectiveLimits = {
+  hasSubscription: boolean
+  status?: string
+  maxBranches: number | null
+  maxUsers: number | null
+  maxEmployees: number | null
 }
 
 export function statusMeta(s: Subscription['status']) {

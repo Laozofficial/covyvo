@@ -7,9 +7,11 @@ import { Button } from '../../../../src/components/ui/Button'
 import { ApiError } from '../../../../src/lib/api'
 import { formatMoney } from '../../../../src/lib/finance-api'
 import {
+  Addon,
   BillingInvoice,
   CreditPack,
   CreditWallet,
+  Plan,
   Subscription,
   billingApi,
   statusMeta,
@@ -17,27 +19,41 @@ import {
 
 export default function BillingPage() {
   const [sub, setSub] = useState<Subscription | null>(null)
+  const [plans, setPlans] = useState<Plan[]>([])
   const [invoices, setInvoices] = useState<BillingInvoice[]>([])
   const [credits, setCredits] = useState<{ invoice: CreditWallet; ai: CreditWallet } | null>(null)
   const [packs, setPacks] = useState<CreditPack[]>([])
+  const [addonCatalog, setAddonCatalog] = useState<Addon[]>([])
+  const [addonQty, setAddonQty] = useState<Record<string, number>>({})
   const [packId, setPackId] = useState('')
+  const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [ok, setOk] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [changing, setChanging] = useState(false)
 
   async function load() {
     setLoading(true)
     try {
-      const [s, cr, pk] = await Promise.all([
+      const [s, pl, cr, pk, ad] = await Promise.all([
         billingApi.subscription(),
+        billingApi.plans().catch(() => [] as Plan[]),
         billingApi.credits().catch(() => null),
         billingApi.packs().catch(() => [] as CreditPack[]),
+        billingApi.addons().catch(() => [] as Addon[]),
       ])
       setSub(s.subscription)
       setInvoices(s.invoices ?? [])
+      setPlans(pl)
       setCredits(cr)
       setPacks(pk.filter((x) => x.isActive))
+      setAddonCatalog(ad.filter((x) => x.isActive))
+      const q: Record<string, number> = {}
+      for (const it of (s.subscription?.addOns ?? [])) q[it.code] = it.quantity
+      setAddonQty(q)
       if (pk.length) setPackId(pk[0].id)
+      if (s.subscription) setCycle(s.subscription.cycle)
       setError(null)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load billing')
@@ -48,15 +64,29 @@ export default function BillingPage() {
 
   useEffect(() => { load() }, [])
 
+  async function run(fn: () => Promise<unknown>, msg?: string) {
+    setBusy(true); setError(null); setOk(null)
+    try { await fn(); if (msg) setOk(msg); await load() }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Something went wrong') }
+    finally { setBusy(false) }
+  }
+
+  async function selectPlan(planId: string) {
+    if (!sub) {
+      await run(() => billingApi.subscribe(planId, cycle), 'Subscription started — enjoy your 7-day trial.')
+      setChanging(false)
+    } else {
+      await run(() => billingApi.changePlan(planId, cycle), 'Plan updated. Any proration appears as an invoice below.')
+      setChanging(false)
+    }
+  }
+
   async function pay(inv: BillingInvoice) {
     setBusy(true); setError(null)
     try {
       const { authorizationUrl } = await billingApi.checkout(inv.id)
       window.location.href = authorizationUrl
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not start payment')
-      setBusy(false)
-    }
+    } catch (err) { setError(err instanceof ApiError ? err.message : 'Could not start payment'); setBusy(false) }
   }
 
   async function buy() {
@@ -66,29 +96,40 @@ export default function BillingPage() {
       const inv = await billingApi.buyCredits(packId)
       const { authorizationUrl } = await billingApi.checkout(inv.id)
       window.location.href = authorizationUrl
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not start purchase')
-      setBusy(false)
-    }
+    } catch (err) { setError(err instanceof ApiError ? err.message : 'Could not start purchase'); setBusy(false) }
+  }
+
+  function saveAddons() {
+    const addOns = Object.entries(addonQty).filter(([, q]) => q > 0).map(([code, quantity]) => ({ code, quantity }))
+    run(() => billingApi.setAddons(addOns), 'Add-ons updated.')
   }
 
   const meta = sub ? statusMeta(sub.status) : null
+  const planPrice = (p: Plan) => cycle === 'annual' ? (p.annualPrice ?? p.monthlyPrice) : p.monthlyPrice
 
   return (
     <>
-      <PageHeader title="Subscription & Billing" description="Your plan, usage credits, and invoices." />
+      <PageHeader title="Subscription & Billing" description="Manage your plan, usage credits, and invoices." />
 
       {error && <div className="mb-4"><Alert variant="error">{error}</Alert></div>}
+      {ok && <div className="mb-4"><Alert variant="success">{ok}</Alert></div>}
 
       {loading ? (
         <div className="rounded-2xl border border-ink-200 bg-white p-10 flex items-center justify-center">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink-200 border-t-brand-600" />
         </div>
-      ) : !sub ? (
-        <div className="rounded-2xl border border-ink-200 bg-white p-8 text-center">
-          <p className="text-[14px] font-bold text-ink-900">No active subscription</p>
-          <p className="mt-1 text-[12.5px] text-ink-500">Contact your Covyvo administrator to set up a plan.</p>
-        </div>
+      ) : (!sub || changing) ? (
+        <PlanChooser
+          plans={plans}
+          cycle={cycle}
+          setCycle={setCycle}
+          currentPlanId={sub?.planId}
+          onSelect={selectPlan}
+          busy={busy}
+          heading={sub ? 'Change your plan' : 'Choose a plan'}
+          subtitle={sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
+          onCancel={sub ? () => setChanging(false) : undefined}
+        />
       ) : (
         <>
           {/* Plan card */}
@@ -104,7 +145,7 @@ export default function BillingPage() {
               <div className="text-right">
                 <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta?.chip}`}>{meta?.label}</span>
                 <p className="mt-2 text-[12px] opacity-80">
-                  {sub.status === 'trialing' ? 'Trial ends' : 'Renews'} {(sub.status === 'trialing' ? sub.trialEndsAt : sub.currentPeriodEnd)?.slice(0, 10) ?? '—'}
+                  {sub.status === 'trialing' ? 'Trial ends' : sub.cancelAtPeriodEnd ? 'Ends' : 'Renews'} {(sub.status === 'trialing' ? sub.trialEndsAt : sub.currentPeriodEnd)?.slice(0, 10) ?? '—'}
                 </p>
               </div>
             </div>
@@ -116,12 +157,18 @@ export default function BillingPage() {
                 <span>AI ops/mo: {sub.plan.aiOpsMonthly ?? 'custom'}</span>
               </div>
             )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button onClick={() => setChanging(true)} className="rounded-lg bg-white/15 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-white/25">Change plan</button>
+              {sub.cancelAtPeriodEnd ? (
+                <button disabled={busy} onClick={() => run(() => billingApi.resume(), 'Subscription resumed.')} className="rounded-lg bg-white/15 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-white/25">Resume</button>
+              ) : (
+                <button disabled={busy} onClick={() => run(() => billingApi.cancel(), 'Will cancel at period end.')} className="rounded-lg bg-white/10 px-3 py-2 text-[12.5px] font-semibold text-white/90 hover:bg-white/20">Cancel plan</button>
+              )}
+            </div>
           </div>
 
           {sub.status === 'past_due' && (
-            <div className="mb-4">
-              <Alert variant="error">Your subscription is past due. Pay the open invoice below to avoid suspension.</Alert>
-            </div>
+            <div className="mb-4"><Alert variant="error">Your subscription is past due. Pay the open invoice below to avoid suspension.</Alert></div>
           )}
 
           {/* Credits */}
@@ -133,13 +180,36 @@ export default function BillingPage() {
             <label className="block">
               <span className="mb-1 block text-[11.5px] font-semibold text-ink-600">Buy a credit pack</span>
               <select value={packId} onChange={(e) => setPackId(e.target.value)} className="h-10 rounded-lg border border-ink-200 bg-white px-3 text-[12.5px] font-semibold text-ink-800 focus:border-brand-500 focus:outline-none">
-                {packs.map((p) => (
-                  <option key={p.id} value={p.id}>{p.quantity.toLocaleString()} {p.type === 'invoice' ? 'invoices' : 'AI ops'} — {formatMoney(p.price, 'NGN')}</option>
-                ))}
+                {packs.map((p) => <option key={p.id} value={p.id}>{p.quantity.toLocaleString()} {p.type === 'invoice' ? 'invoices' : 'AI ops'} — {formatMoney(p.price, 'NGN')}</option>)}
               </select>
             </label>
             <Button loading={busy} disabled={!packId} onClick={buy}>Buy credits</Button>
           </div>
+
+          {/* Add-ons */}
+          {addonCatalog.length > 0 && (
+            <div className="mb-6 rounded-2xl border border-ink-200 bg-white p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-[13px] font-bold text-ink-900">Add-ons</h2>
+                <Button variant="secondary" loading={busy} onClick={saveAddons}>Save add-ons</Button>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {addonCatalog.map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 rounded-lg border border-ink-200 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] font-semibold text-ink-800">{a.name}</p>
+                      <p className="text-[11px] text-ink-400">{formatMoney(a.monthlyPrice, 'NGN')}/mo{a.unitQty > 1 ? ` · +${a.unitQty} each` : ''}</p>
+                    </div>
+                    {a.type === 'feature' ? (
+                      <input type="checkbox" checked={(addonQty[a.code] ?? 0) > 0} onChange={(e) => setAddonQty({ ...addonQty, [a.code]: e.target.checked ? 1 : 0 })} />
+                    ) : (
+                      <input type="number" min={0} value={addonQty[a.code] ?? 0} onChange={(e) => setAddonQty({ ...addonQty, [a.code]: Math.max(0, parseInt(e.target.value || '0', 10)) })} className="h-8 w-16 rounded-lg border border-ink-200 px-2 text-right text-[12px] focus:border-brand-500 focus:outline-none" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Invoices */}
           <h2 className="mb-2 text-[13px] font-bold text-ink-900">Invoices</h2>
@@ -149,13 +219,7 @@ export default function BillingPage() {
             <div className="rounded-2xl border border-ink-200 bg-white overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-ink-50/60 text-[10.5px] font-bold uppercase tracking-wider text-ink-500">
-                  <tr>
-                    <th className="px-4 py-3">Description</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3 text-right">Total</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Action</th>
-                  </tr>
+                  <tr><th className="px-4 py-3">Description</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Action</th></tr>
                 </thead>
                 <tbody className="divide-y divide-ink-100">
                   {invoices.map((inv) => (
@@ -163,14 +227,8 @@ export default function BillingPage() {
                       <td className="px-4 py-3 text-ink-800">{inv.description}</td>
                       <td className="px-4 py-3 text-[11.5px] text-ink-500">{inv.createdAt?.slice(0, 10)}</td>
                       <td className="px-4 py-3 text-right font-mono font-semibold text-ink-900">{formatMoney(inv.total, inv.currency)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : inv.status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>{inv.status}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {inv.status !== 'paid' && (
-                          <button onClick={() => pay(inv)} disabled={busy} className="text-[12px] font-semibold text-brand-600 hover:text-brand-700 disabled:opacity-50">Pay now</button>
-                        )}
-                      </td>
+                      <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : inv.status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>{inv.status}</span></td>
+                      <td className="px-4 py-3 text-right">{inv.status !== 'paid' && <button onClick={() => pay(inv)} disabled={busy} className="text-[12px] font-semibold text-brand-600 hover:text-brand-700 disabled:opacity-50">Pay now</button>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -183,20 +241,70 @@ export default function BillingPage() {
   )
 }
 
+function PlanChooser({
+  plans, cycle, setCycle, currentPlanId, onSelect, busy, heading, subtitle, onCancel,
+}: {
+  plans: Plan[]
+  cycle: 'monthly' | 'annual'
+  setCycle: (c: 'monthly' | 'annual') => void
+  currentPlanId?: string
+  onSelect: (planId: string) => void
+  busy: boolean
+  heading: string
+  subtitle: string
+  onCancel?: () => void
+}) {
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[16px] font-bold text-ink-900">{heading}</h2>
+          <p className="text-[12.5px] text-ink-500">{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg border border-ink-200 bg-white p-0.5 text-[12px] font-semibold">
+            <button onClick={() => setCycle('monthly')} className={`rounded-md px-3 py-1.5 ${cycle === 'monthly' ? 'bg-brand-600 text-white' : 'text-ink-600'}`}>Monthly</button>
+            <button onClick={() => setCycle('annual')} className={`rounded-md px-3 py-1.5 ${cycle === 'annual' ? 'bg-brand-600 text-white' : 'text-ink-600'}`}>Annual <span className="opacity-70">(save)</span></button>
+          </div>
+          {onCancel && <button onClick={onCancel} className="text-[12.5px] font-semibold text-ink-500 hover:text-ink-800">Back</button>}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {plans.map((p) => {
+          const price = cycle === 'annual' ? (p.annualPrice ?? p.monthlyPrice) : p.monthlyPrice
+          const isCurrent = p.id === currentPlanId
+          return (
+            <div key={p.id} className={`flex flex-col rounded-2xl border p-5 ${isCurrent ? 'border-brand-500 ring-1 ring-brand-500' : 'border-ink-200'} bg-white`}>
+              <p className="text-[15px] font-bold text-ink-900">{p.name}</p>
+              <p className="mt-1 text-[24px] font-bold text-ink-900">{formatMoney(price, 'NGN')}<span className="text-[12px] font-medium text-ink-400"> /{cycle === 'annual' ? 'yr' : 'mo'}</span></p>
+              {p.description && <p className="mt-1 text-[11.5px] text-ink-500 line-clamp-3">{p.description}</p>}
+              <ul className="mt-3 space-y-1 text-[11.5px] text-ink-600">
+                <li>{p.maxBranches ?? '∞'} branches · {p.maxUsers ?? '∞'} users</li>
+                <li>{p.maxEmployees ?? '∞'} employees</li>
+                <li>{p.aiOpsMonthly ?? 'Custom'} AI ops / month</li>
+              </ul>
+              <button
+                disabled={busy || isCurrent}
+                onClick={() => onSelect(p.id)}
+                className={`mt-4 rounded-lg py-2 text-[12.5px] font-semibold ${isCurrent ? 'cursor-default bg-ink-100 text-ink-500' : 'bg-brand-600 text-white hover:bg-brand-700'} disabled:opacity-60`}
+              >
+                {isCurrent ? 'Current plan' : currentPlanId ? 'Switch to this plan' : 'Start 7-day trial'}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function CreditCard({ title, w, unit }: { title: string; w?: CreditWallet; unit: string }) {
   const monthlyLeft = w ? Math.max(0, w.monthlyIncluded - w.monthlyUsed) : 0
   return (
     <div className="rounded-2xl border border-ink-200 bg-white p-4">
       <p className="text-[11px] font-bold uppercase tracking-wider text-ink-500">{title}</p>
-      <p className="mt-1 text-[24px] font-bold text-ink-900">
-        {w ? w.available.toLocaleString() : '—'} <span className="text-[12px] font-medium text-ink-400">{unit}</span>
-      </p>
-      {w && (
-        <p className="mt-0.5 text-[11.5px] text-ink-500">
-          {w.purchased.toLocaleString()} purchased
-          {w.monthlyIncluded > 0 && ` · ${monthlyLeft.toLocaleString()} of ${w.monthlyIncluded.toLocaleString()} monthly left`}
-        </p>
-      )}
+      <p className="mt-1 text-[24px] font-bold text-ink-900">{w ? w.available.toLocaleString() : '—'} <span className="text-[12px] font-medium text-ink-400">{unit}</span></p>
+      {w && <p className="mt-0.5 text-[11.5px] text-ink-500">{w.purchased.toLocaleString()} purchased{w.monthlyIncluded > 0 && ` · ${monthlyLeft.toLocaleString()} of ${w.monthlyIncluded.toLocaleString()} monthly left`}</p>}
     </div>
   )
 }
