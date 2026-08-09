@@ -71,6 +71,12 @@ export const billingApi = {
     api('/billing/subscribe', { method: 'POST', body: { planId, cycle }, auth: true }),
   trial: (planId: string, cycle: 'monthly' | 'annual') =>
     api('/billing/trial', { method: 'POST', body: { planId, cycle }, auth: true }),
+  subscribeNow: (planId: string, cycle: 'monthly' | 'annual') =>
+    api<{ authorizationUrl: string }>('/billing/subscribe-now', {
+      method: 'POST',
+      body: { planId, cycle },
+      auth: true,
+    }),
   changePlan: (planId: string, cycle: 'monthly' | 'annual') =>
     api('/billing/change-plan', { method: 'POST', body: { planId, cycle }, auth: true }),
   cancel: () => api('/billing/cancel', { method: 'POST', auth: true }),

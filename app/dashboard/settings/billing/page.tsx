@@ -85,6 +85,17 @@ export default function BillingPage() {
     setChanging(false)
   }
 
+  async function buyNow(planId: string) {
+    setBusy(true); setError(null); setOk(null)
+    try {
+      const { authorizationUrl } = await billingApi.subscribeNow(planId, cycle)
+      window.location.href = authorizationUrl
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not start payment')
+      setBusy(false)
+    }
+  }
+
   async function pay(inv: BillingInvoice) {
     setBusy(true); setError(null)
     try {
@@ -130,9 +141,10 @@ export default function BillingPage() {
           currentPlanId={sub?.planId}
           trialMode={onFree}
           onSelect={selectPlan}
+          onBuyNow={onFree ? buyNow : undefined}
           busy={busy}
-          heading={onFree ? 'Start your free trial' : sub ? 'Change your plan' : 'Choose a plan'}
-          subtitle={onFree ? 'Pick a plan to try free for 7 days — no charge until it ends.' : sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
+          heading={onFree ? 'Upgrade your plan' : sub ? 'Change your plan' : 'Choose a plan'}
+          subtitle={onFree ? 'Start a 7-day free trial, or buy a plan now to activate it immediately.' : sub ? 'Upgrades/downgrades are prorated for the rest of your period.' : 'Start with a 7-day free trial. Cancel anytime.'}
           onCancel={() => setChanging(false)}
         />
       ) : (
@@ -249,7 +261,7 @@ export default function BillingPage() {
 }
 
 function PlanChooser({
-  plans, cycle, setCycle, currentPlanId, trialMode, onSelect, busy, heading, subtitle, onCancel,
+  plans, cycle, setCycle, currentPlanId, trialMode, onSelect, onBuyNow, busy, heading, subtitle, onCancel,
 }: {
   plans: Plan[]
   cycle: 'monthly' | 'annual'
@@ -257,6 +269,7 @@ function PlanChooser({
   currentPlanId?: string
   trialMode?: boolean
   onSelect: (planId: string) => void
+  onBuyNow?: (planId: string) => void
   busy: boolean
   heading: string
   subtitle: string
@@ -291,13 +304,32 @@ function PlanChooser({
                 <li>{p.maxEmployees ?? '∞'} employees</li>
                 <li>{p.aiOpsMonthly ?? 'Custom'} AI ops / month</li>
               </ul>
-              <button
-                disabled={busy || isCurrent}
-                onClick={() => onSelect(p.id)}
-                className={`mt-4 rounded-lg py-2 text-[12.5px] font-semibold ${isCurrent ? 'cursor-default bg-ink-100 text-ink-500' : 'bg-brand-600 text-white hover:bg-brand-700'} disabled:opacity-60`}
-              >
-                {isCurrent ? 'Current plan' : (trialMode || !currentPlanId) && p.code !== 'free' ? 'Start 7-day trial' : p.code === 'free' ? 'Switch to Free' : 'Switch to this plan'}
-              </button>
+              {onBuyNow && p.code !== 'free' && !isCurrent ? (
+                <div className="mt-4 space-y-2">
+                  <button
+                    disabled={busy}
+                    onClick={() => onSelect(p.id)}
+                    className="w-full rounded-lg border border-brand-600 py-2 text-[12.5px] font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-60"
+                  >
+                    Start 7-day trial
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => onBuyNow(p.id)}
+                    className="w-full rounded-lg bg-brand-600 py-2 text-[12.5px] font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                  >
+                    Buy now — pay & activate
+                  </button>
+                </div>
+              ) : (
+                <button
+                  disabled={busy || isCurrent}
+                  onClick={() => onSelect(p.id)}
+                  className={`mt-4 rounded-lg py-2 text-[12.5px] font-semibold ${isCurrent ? 'cursor-default bg-ink-100 text-ink-500' : 'bg-brand-600 text-white hover:bg-brand-700'} disabled:opacity-60`}
+                >
+                  {isCurrent ? 'Current plan' : (trialMode || !currentPlanId) && p.code !== 'free' ? 'Start 7-day trial' : p.code === 'free' ? 'Switch to Free' : 'Switch to this plan'}
+                </button>
+              )}
             </div>
           )
         })}
