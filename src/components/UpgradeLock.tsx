@@ -32,7 +32,7 @@ export function UpgradeLock({
     <div className="flex min-h-[70vh] items-center justify-center py-10">
       <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-ink-200 bg-white shadow-sm">
         {/* Header band */}
-        <div className="relative bg-gradient-to-br from-brand-600 to-violet-700 px-8 pt-8 pb-10 text-white">
+        <div className="relative bg-gradient-to-br from-brand-600 to-brand-800 px-8 pt-8 pb-10 text-white">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
             <span className="[&>svg]:h-6 [&>svg]:w-6"><LockClosedIcon size={22} /></span>
           </div>

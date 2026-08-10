@@ -6,7 +6,10 @@ import { PageHeader } from '../../../../src/components/PageHeader'
 import { Alert } from '../../../../src/components/ui/Alert'
 import { Button } from '../../../../src/components/ui/Button'
 import { UsersIcon } from '../../../../src/components/ui/icons'
+import { UpgradeLimitDialog } from '../../../../src/components/UpgradeLimitDialog'
+import { capFor, isAtLimit, usePlanLimits } from '../../../../src/lib/usePlanLimits'
 import { ApiError } from '../../../../src/lib/api'
+import Link from 'next/link'
 import { Membership, Role, membershipsApi, rolesApi } from '../../../../src/lib/roles-api'
 import { storage } from '../../../../src/lib/storage'
 import { AuthUser } from '../../../../src/lib/auth-api'
@@ -23,6 +26,16 @@ export default function UsersPage() {
   const [me, setMe] = useState<AuthUser | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [resetTarget, setResetTarget] = useState<Membership | null>(null)
+  const [upsell, setUpsell] = useState(false)
+  const { limits } = usePlanLimits()
+
+  const userCap = capFor(limits, 'user')
+  const atLimit = isAtLimit(limits, 'user', memberships.length)
+
+  function startInvite() {
+    if (atLimit) { setUpsell(true); return }
+    setDrawerOpen(true)
+  }
 
   useEffect(() => {
     setMe(storage.getActiveUser<AuthUser>())
@@ -95,8 +108,19 @@ export default function UsersPage() {
       <PageHeader
         title="Users"
         description="Invite teammates and assign roles. Their permissions update on their next sign-in."
-        actions={<Button onClick={() => setDrawerOpen(true)}>Add user</Button>}
+        actions={<Button onClick={startInvite}>Add user</Button>}
       />
+
+      {atLimit && userCap !== null && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+          <p className="text-[12.5px] font-medium text-amber-800">
+            You&apos;ve used all {userCap} user seat{userCap === 1 ? '' : 's'} on your plan. Upgrade to add more.
+          </p>
+          <Link href="/dashboard/settings/billing" className="text-[12.5px] font-bold text-amber-900 underline">
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       <InviteUserDrawer
         open={drawerOpen}
@@ -112,6 +136,13 @@ export default function UsersPage() {
         open={!!resetTarget}
         onClose={() => setResetTarget(null)}
         membership={resetTarget}
+      />
+
+      <UpgradeLimitDialog
+        open={upsell}
+        onClose={() => setUpsell(false)}
+        resource="user seats"
+        limit={userCap ?? 0}
       />
 
       {error && (

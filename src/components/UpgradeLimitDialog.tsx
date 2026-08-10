@@ -24,7 +24,7 @@ export function UpgradeLimitDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-ink-200 bg-white shadow-xl">
-        <div className="bg-gradient-to-br from-brand-600 to-violet-700 px-7 pt-7 pb-8 text-white">
+        <div className="bg-gradient-to-br from-brand-600 to-brand-800 px-7 pt-7 pb-8 text-white">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
             <span className="[&>svg]:h-5 [&>svg]:w-5"><LockClosedIcon size={20} /></span>
           </div>

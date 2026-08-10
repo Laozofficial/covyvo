@@ -109,7 +109,7 @@ export default function PayrollWalletPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 max-w-2xl">
-            <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-600 to-violet-700 text-white p-6">
+            <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-600 to-brand-800 text-white p-6">
               <div className="text-[11px] font-bold uppercase tracking-wider opacity-80">Available balance</div>
               <div className="mt-1 text-[30px] font-bold">{formatMoney(wallet?.balance ?? 0, wallet?.currency ?? 'NGN')}</div>
               <div className="mt-1 text-[12px] opacity-80">Spendable — payroll pays from this.</div>

@@ -24,6 +24,8 @@ import {
   fullName,
   statusMeta,
 } from '../../../../src/lib/hr-api'
+import { UpgradeLimitDialog } from '../../../../src/components/UpgradeLimitDialog'
+import { capFor, isAtLimit, usePlanLimits } from '../../../../src/lib/usePlanLimits'
 import { DepartmentsDrawer } from './_components/DepartmentsDrawer'
 import { EmployeeFormDrawer } from './_components/EmployeeFormDrawer'
 
@@ -52,6 +54,17 @@ export default function EmployeesPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Employee | null>(null)
   const [deptDrawerOpen, setDeptDrawerOpen] = useState(false)
+  const [upsell, setUpsell] = useState(false)
+  const { limits } = usePlanLimits()
+
+  const employeeCap = capFor(limits, 'employee')
+  const atLimit = isAtLimit(limits, 'employee', total)
+
+  function startCreate() {
+    if (atLimit) { setUpsell(true); return }
+    setEditing(null)
+    setFormOpen(true)
+  }
 
   function loadDepartments() {
     departmentsApi
@@ -122,17 +135,23 @@ export default function EmployeesPage() {
             >
               Departments
             </Button>
-            <Button
-              onClick={() => {
-                setEditing(null)
-                setFormOpen(true)
-              }}
-            >
+            <Button onClick={startCreate}>
               Add employee
             </Button>
           </div>
         }
       />
+
+      {atLimit && employeeCap !== null && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+          <p className="text-[12.5px] font-medium text-amber-800">
+            You&apos;ve used all {employeeCap} employee{employeeCap === 1 ? '' : 's'} on your plan. Upgrade to add more.
+          </p>
+          <Link href="/dashboard/settings/billing" className="text-[12.5px] font-bold text-amber-900 underline">
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4">
@@ -195,12 +214,7 @@ export default function EmployeesPage() {
           }
           action={
             !search && !departmentId && !employmentStatus ? (
-              <Button
-                onClick={() => {
-                  setEditing(null)
-                  setFormOpen(true)
-                }}
-              >
+              <Button onClick={startCreate}>
                 Add employee
               </Button>
             ) : null
@@ -312,6 +326,13 @@ export default function EmployeesPage() {
           loadDepartments()
           loadEmployees()
         }}
+      />
+
+      <UpgradeLimitDialog
+        open={upsell}
+        onClose={() => setUpsell(false)}
+        resource="employees"
+        limit={employeeCap ?? 0}
       />
     </>
   )

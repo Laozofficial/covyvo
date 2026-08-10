@@ -299,7 +299,7 @@ export default function BillingPage() {
       ) : (
         <>
           {/* Plan card */}
-          <div className="mb-4 rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-600 to-violet-700 p-6 text-white">
+          <div className="mb-4 rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider opacity-70">Current plan</p>
