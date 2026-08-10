@@ -7,8 +7,10 @@ import { PageHeader } from '../../../../src/components/PageHeader'
 import { Alert } from '../../../../src/components/ui/Alert'
 import { Button } from '../../../../src/components/ui/Button'
 import { BranchIcon, SearchIcon } from '../../../../src/components/ui/icons'
+import { UpgradeLimitDialog } from '../../../../src/components/UpgradeLimitDialog'
 import { ApiError } from '../../../../src/lib/api'
 import { Branch, branchesApi } from '../../../../src/lib/hr-api'
+import { capFor, isAtLimit, usePlanLimits } from '../../../../src/lib/usePlanLimits'
 import { BranchFormDrawer } from './_components/BranchFormDrawer'
 
 export default function BranchesPage() {
@@ -19,6 +21,18 @@ export default function BranchesPage() {
   const [search, setSearch] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<Branch | null>(null)
+  const [upsell, setUpsell] = useState(false)
+  const { limits } = usePlanLimits()
+
+  const branchCap = capFor(limits, 'branch')
+  const atLimit = isAtLimit(limits, 'branch', total)
+
+  // Open the create form, or the upgrade prompt if the plan cap is reached.
+  function startCreate() {
+    if (atLimit) { setUpsell(true); return }
+    setEditing(null)
+    setDrawerOpen(true)
+  }
 
   async function load() {
     setLoading(true); setError(null)
@@ -75,13 +89,24 @@ export default function BranchesPage() {
         title="Branches"
         description={`${total.toLocaleString()} locations · ${counts.head} head office · ${counts.active} active`}
         actions={
-          <Button onClick={() => { setEditing(null); setDrawerOpen(true) }}>
+          <Button onClick={startCreate}>
             New branch
           </Button>
         }
       />
 
       {error && <div className="mb-4"><Alert variant="error">{error}</Alert></div>}
+
+      {atLimit && branchCap !== null && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+          <p className="text-[12.5px] font-medium text-amber-800">
+            You&apos;ve used all {branchCap} branch{branchCap === 1 ? '' : 'es'} on your plan. Upgrade to add more.
+          </p>
+          <Link href="/dashboard/settings/billing" className="text-[12.5px] font-bold text-amber-900 underline">
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       <div className="rounded-2xl bg-white border border-ink-200 p-3 mb-4">
         <div className="relative">
@@ -106,7 +131,7 @@ export default function BranchesPage() {
           title={search ? 'No matches' : 'No branches yet'}
           description={search ? 'Try clearing the filter above.' : 'Add your head office and any regional locations.'}
           action={!search ? (
-            <Button onClick={() => { setEditing(null); setDrawerOpen(true) }}>Add first branch</Button>
+            <Button onClick={startCreate}>Add first branch</Button>
           ) : null}
         />
       ) : (
@@ -186,6 +211,13 @@ export default function BranchesPage() {
         onClose={() => { setDrawerOpen(false); setEditing(null) }}
         initial={editing}
         onSaved={handleSaved}
+      />
+
+      <UpgradeLimitDialog
+        open={upsell}
+        onClose={() => setUpsell(false)}
+        resource="branches"
+        limit={branchCap ?? 0}
       />
     </>
   )
