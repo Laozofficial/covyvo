@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { FloatingAiButton } from '../../src/components/FloatingAiButton'
+import { PlanGuard } from '../../src/components/PlanGuard'
 import { Sidebar } from '../../src/components/Sidebar'
 import { TopBar } from '../../src/components/TopBar'
 import { ApiError } from '../../src/lib/api'
@@ -68,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
         <main className="flex-1 px-6 pb-8">
-          <div className="max-w-[1400px] mx-auto">{children}</div>
+          <div className="max-w-[1400px] mx-auto"><PlanGuard>{children}</PlanGuard></div>
         </main>
       </div>
       <FloatingAiButton />
